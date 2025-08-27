@@ -431,6 +431,51 @@ public class SolveController {
         return ResponseEntity.badRequest().body(e.getMessage());
     }
 
+    /**
+     * Get session-specific solve statistics
+     * GET /api/solves/session/{sessionId}/statistics
+     */
+    @GetMapping("/session/{sessionId}/statistics")
+    public ResponseEntity<SolveStatistics> getSessionStatistics(
+            @PathVariable UUID sessionId,
+            Authentication authentication) {
+        
+        logger.debug("Fetching session-specific solve statistics for session: {}", sessionId);
+        
+        try {
+            User user = userService.getCurrentUser(authentication);
+            
+            // Calculate session-specific averages
+            OptionalDouble sessionAo5 = solveService.calculateSessionAo5(sessionId, user);
+            OptionalDouble sessionAo12 = solveService.calculateSessionAo12(sessionId, user);
+            OptionalDouble sessionAo100 = solveService.calculateSessionAo100(sessionId, user);
+            
+            // Get session solve count
+            List<Solve> sessionSolves = solveService.getSessionSolves(sessionId, user);
+            long totalSolves = sessionSolves.size();
+            
+            SolveStatistics stats = new SolveStatistics();
+            stats.totalSolves = totalSolves;
+            stats.currentAo5 = sessionAo5.isPresent() ? sessionAo5.getAsDouble() : null;
+            stats.currentAo12 = sessionAo12.isPresent() ? sessionAo12.getAsDouble() : null;
+            stats.currentAo100 = sessionAo100.isPresent() ? sessionAo100.getAsDouble() : null;
+            
+            // Personal best is still global (makes sense to compare against all-time best)
+            solveService.getPersonalBest(user, Scramble.PuzzleType.CUBE_3X3).ifPresent(pb -> {
+                stats.personalBest = pb.getAdjustedTimeMs();
+            });
+            
+            return ResponseEntity.ok(stats);
+            
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid session statistics request: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            logger.error("Error fetching session statistics", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGenericException(Exception e) {
         logger.error("Unexpected error in SolveController", e);

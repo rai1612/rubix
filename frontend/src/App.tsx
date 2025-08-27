@@ -25,6 +25,9 @@ import ErrorFallback from './components/common/ErrorFallback';
 // Auth
 import { AuthService } from './services/authService';
 
+// Context
+import { SessionProvider } from './context/SessionContext';
+
 // Styles
 import './index.css';
 
@@ -86,11 +89,13 @@ function App() {
           <div className="min-h-screen bg-gray-50">
             <Routes>
               <Route path="/login" element={<LoginPage />} />
-              <Route
+                              <Route
                 path="/"
                 element={
                   <ProtectedRoute>
-                    <Layout />
+                    <SessionProvider>
+                      <Layout />
+                    </SessionProvider>
                   </ProtectedRoute>
                 }
               >

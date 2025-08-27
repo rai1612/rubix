@@ -188,16 +188,71 @@ public class SessionController {
      * POST /api/sessions/end-current
      */
     @PostMapping("/end-current")
-    public ResponseEntity<Void> endCurrentSession(Authentication authentication) {
-        logger.info("Ending current session for user: {}", authentication.getName());
+    public ResponseEntity<SessionDto> endCurrentSession(Authentication authentication) {
+        logger.info("Ending current session and creating new session for user: {}", authentication.getName());
         
         try {
             User user = userService.getCurrentUser(authentication);
-            sessionService.endCurrentSession(user);
-            return ResponseEntity.ok().build();
+            Session newSession = sessionService.endCurrentSession(user);
+            SessionDto dto = SessionDto.fromEntity(newSession);
+            return ResponseEntity.ok(dto);
             
         } catch (Exception e) {
             logger.error("Error ending current session", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Switch to (activate) an existing session
+     * POST /api/sessions/{id}/activate
+     */
+    @PostMapping("/{id}/activate")
+    public ResponseEntity<SessionDto> activateSession(
+            @PathVariable UUID id,
+            Authentication authentication) {
+        
+        logger.info("Activating session: {} for user: {}", id, authentication.getName());
+        
+        try {
+            User user = userService.getCurrentUser(authentication);
+            Session session = sessionService.switchToSession(id, user);
+            SessionDto dto = SessionDto.fromEntity(session);
+            return ResponseEntity.ok(dto);
+            
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid session activation request: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            logger.error("Error activating session", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Delete session
+     * DELETE /api/sessions/{id}
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSession(
+            @PathVariable UUID id,
+            Authentication authentication) {
+        
+        logger.info("Deleting session: {} by user: {}", id, authentication.getName());
+        
+        try {
+            User user = userService.getCurrentUser(authentication);
+            sessionService.deleteSession(id, user);
+            return ResponseEntity.noContent().build();
+            
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid session deletion request: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (IllegalStateException e) {
+            logger.warn("Cannot delete session: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            logger.error("Error deleting session", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

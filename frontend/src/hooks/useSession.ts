@@ -16,6 +16,7 @@ export interface UseSessionReturn {
   loadOrCreateSession: () => Promise<void>;
   createNewSession: (request: CreateSessionRequest) => Promise<void>;
   endCurrentSession: () => Promise<void>;
+  activateSession: (sessionId: string) => Promise<void>;
   refreshSession: () => Promise<void>;
   clearError: () => void;
 }
@@ -66,18 +67,37 @@ export const useSession = (options: UseSessionOptions = {}): UseSessionReturn =>
 
   // Create new session
   const createNewSession = useCallback(async (request: CreateSessionRequest) => {
+    const hookRequestId = Date.now();
     try {
       setIsLoading(true);
       setError(null);
       
+      console.log(`[${hookRequestId}] useSession: STARTING session creation with request:`, request);
       const session = await SessionService.createSession(request);
+      console.log(`[${hookRequestId}] useSession: Session created SUCCESSFULLY:`, session);
       setCurrentSession(session);
+      console.log(`[${hookRequestId}] useSession: State updated with new session`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create session';
       setError(message);
-      console.error('Failed to create session:', err);
+      console.error(`[${hookRequestId}] useSession: FAILED to create session:`, err);
+      
+      // Log more details if it's an axios error
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as any;
+        console.error(`[${hookRequestId}] useSession: Axios error details:`, {
+          status: axiosError.response?.status,
+          statusText: axiosError.response?.statusText,
+          data: axiosError.response?.data,
+          config: axiosError.config
+        });
+      }
+      
+      // Re-throw the error to propagate to the UI
+      throw err;
     } finally {
       setIsLoading(false);
+      console.log(`[${hookRequestId}] useSession: Request completed, loading set to false`);
     }
   }, []);
 
@@ -95,6 +115,42 @@ export const useSession = (options: UseSessionOptions = {}): UseSessionReturn =>
       console.error('Failed to end session:', err);
     } finally {
       setIsLoading(false);
+    }
+  }, []);
+
+  // Activate an existing session
+  const activateSession = useCallback(async (sessionId: string) => {
+    const hookRequestId = Date.now();
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      console.log(`[${hookRequestId}] useSession: ACTIVATING session:`, sessionId);
+      const session = await SessionService.activateSession(sessionId);
+      console.log(`[${hookRequestId}] useSession: Session activated SUCCESSFULLY:`, session);
+      setCurrentSession(session);
+      console.log(`[${hookRequestId}] useSession: State updated with activated session`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to activate session';
+      setError(message);
+      console.error(`[${hookRequestId}] useSession: FAILED to activate session:`, err);
+      
+      // Log more details if it's an axios error
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as any;
+        console.error(`[${hookRequestId}] useSession: Axios error details:`, {
+          status: axiosError.response?.status,
+          statusText: axiosError.response?.statusText,
+          data: axiosError.response?.data,
+          config: axiosError.config
+        });
+      }
+      
+      // Re-throw the error to propagate to the UI
+      throw err;
+    } finally {
+      setIsLoading(false);
+      console.log(`[${hookRequestId}] useSession: Activate request completed, loading set to false`);
     }
   }, []);
 
@@ -153,6 +209,7 @@ export const useSession = (options: UseSessionOptions = {}): UseSessionReturn =>
     loadOrCreateSession,
     createNewSession,
     endCurrentSession,
+    activateSession,
     refreshSession,
     clearError
   };

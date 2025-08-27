@@ -251,6 +251,21 @@ export class SolveService {
   }
 
   /**
+   * Get session-specific solve statistics
+   */
+  static async getSessionStatistics(sessionId: string): Promise<SolveStatistics> {
+    try {
+      console.log('SolveService: Fetching session statistics for session:', sessionId);
+      const response = await api.get(`/session/${sessionId}/statistics`);
+      console.log('SolveService: Session statistics received:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('SolveService: Error fetching session statistics:', error);
+      throw new Error('Failed to fetch session statistics');
+    }
+  }
+
+  /**
    * Get time distribution statistics
    */
   static async getTimeDistribution(puzzleType: PuzzleType = PuzzleType.CUBE_3X3): Promise<TimeDistribution> {

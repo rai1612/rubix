@@ -49,7 +49,7 @@ public class SolveService {
                            Solve.Penalty penalty, Instant solvedAt, String notes) {
         logger.info("Creating solve for user: {}, time: {}ms", user.getUsername(), timeMs);
 
-        // Get or create current session
+        // Get or create current session (coordinated with frontend to prevent duplicates)
         Session currentSession = sessionService.getCurrentOrCreateSession(user);
 
         // Get scramble
@@ -109,7 +109,17 @@ public class SolveService {
             solve.calculateTps();
         }
 
-        return solveRepository.save(solve);
+        Solve savedSolve = solveRepository.save(solve);
+        
+        // Update session statistics when solve is modified (especially for penalty changes)
+        Session session = solve.getSession();
+        if (session != null) {
+            logger.info("Updating session statistics after solve update for session: {}", session.getId());
+            updateSessionStatistics(session);
+            logger.info("Session statistics update completed after solve modification");
+        }
+
+        return savedSolve;
     }
 
     /**
@@ -239,6 +249,90 @@ public class SolveService {
         }
 
         return calculateAverageOfX(recentSolves, 5); // Remove 5 best and 5 worst
+    }
+
+    /**
+     * Calculate session-specific Ao5 (Average of 5)
+     */
+    @Transactional(readOnly = true)
+    public OptionalDouble calculateSessionAo5(UUID sessionId, User user) {
+        // Verify session ownership first
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+        if (!session.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("User does not own this session");
+        }
+        
+        List<Solve> sessionSolves = solveRepository.findBySessionIdOrderBySolvedAtDesc(sessionId);
+        
+        // Filter to valid solves only and take last 5
+        List<Solve> recentValidSolves = sessionSolves.stream()
+                .filter(solve -> solve.getPenalty() != Solve.Penalty.DNF)
+                .limit(5)
+                .toList();
+
+        if (recentValidSolves.size() < 5) {
+            return OptionalDouble.empty();
+        }
+
+        return calculateAverageOfX(recentValidSolves, 1); // Remove best and worst
+    }
+
+    /**
+     * Calculate session-specific Ao12 (Average of 12)
+     */
+    @Transactional(readOnly = true)
+    public OptionalDouble calculateSessionAo12(UUID sessionId, User user) {
+        // Verify session ownership first
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+        if (!session.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("User does not own this session");
+        }
+        
+        List<Solve> sessionSolves = solveRepository.findBySessionIdOrderBySolvedAtDesc(sessionId);
+        
+        // Filter to valid solves only and take last 12
+        List<Solve> recentValidSolves = sessionSolves.stream()
+                .filter(solve -> solve.getPenalty() != Solve.Penalty.DNF)
+                .limit(12)
+                .toList();
+
+        if (recentValidSolves.size() < 12) {
+            return OptionalDouble.empty();
+        }
+
+        return calculateAverageOfX(recentValidSolves, 1); // Remove best and worst
+    }
+
+    /**
+     * Calculate session-specific Ao100 (Average of 100)
+     */
+    @Transactional(readOnly = true)
+    public OptionalDouble calculateSessionAo100(UUID sessionId, User user) {
+        // Verify session ownership first
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+        if (!session.getUser().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("User does not own this session");
+        }
+        
+        List<Solve> sessionSolves = solveRepository.findBySessionIdOrderBySolvedAtDesc(sessionId);
+        
+        // Filter to valid solves only and take last 100
+        List<Solve> recentValidSolves = sessionSolves.stream()
+                .filter(solve -> solve.getPenalty() != Solve.Penalty.DNF)
+                .limit(100)
+                .toList();
+
+        if (recentValidSolves.size() < 100) {
+            return OptionalDouble.empty();
+        }
+
+        return calculateAverageOfX(recentValidSolves, 5); // Remove 5 best and 5 worst
     }
 
     /**

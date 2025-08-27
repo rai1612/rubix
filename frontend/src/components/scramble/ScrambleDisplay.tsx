@@ -1,6 +1,6 @@
 import React from 'react';
 import { RefreshCw, Copy, Check, Download } from 'lucide-react';
-import { ScrambleDto, formatScramble, getPuzzleDisplayName } from '../../services/scrambleService';
+import { ScrambleDto, getPuzzleDisplayName } from '../../services/scrambleService';
 
 interface ScrambleDisplayProps {
   scramble: ScrambleDto | null;
@@ -106,7 +106,10 @@ Generated: ${new Date(scramble.generatedAt).toLocaleString()}`;
           
           {onGenerateNew && (
             <button
-              onClick={onGenerateNew}
+              onClick={() => {
+                console.log('Scramble refresh button clicked');
+                onGenerateNew();
+              }}
               disabled={isGenerating}
               className="p-2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
               title="Generate new scramble"

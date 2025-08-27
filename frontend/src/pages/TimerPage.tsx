@@ -5,7 +5,7 @@ import { TimerSettings } from '../components/timer/TimerSettings';
 import { ScrambleDisplay } from '../components/scramble/ScrambleDisplay';
 import { SessionStatsDisplay } from '../components/statistics/SessionStatsDisplay';
 import { useTimer } from '../hooks/useTimer';
-import { useSession } from '../hooks/useSession';
+import { useSessionContext } from '../context/SessionContext';
 import { useTimerSettings, useTimerSound, useTimerVisualEffects } from '../hooks/useTimerSettings';
 import { TimerResult, TimerState } from '../utils/timerUtils';
 import { PuzzleType, ScrambleService, ClientScrambleGenerator, ScrambleDto } from '../services/scrambleService';
@@ -23,22 +23,26 @@ const TimerPage: React.FC = () => {
   const [isGeneratingNext, setIsGeneratingNext] = useState<boolean>(false);
   const [scrambleError, setScrambleError] = useState<string | null>(null);
 
+  // Retry tracking state
+  const [originalScrambleId, setOriginalScrambleId] = useState<string | null>(null);
+  const [isRetryAttempt, setIsRetryAttempt] = useState<boolean>(false);
+
+  // Statistics refresh trigger
+  const [statsRefreshTrigger, setStatsRefreshTrigger] = useState<number>(0);
+
   // Settings hooks
   const { settings, updateSettings, isLoaded: settingsLoaded } = useTimerSettings();
   const { playSound } = useTimerSound(settings.enableSound);
   const { flashScreen, vibrate } = useTimerVisualEffects();
   
-  // Session hook
+  // Session context
   const {
     currentSession,
     isLoading: sessionLoading,
     error: sessionError,
     loadOrCreateSession,
     refreshSession
-  } = useSession({
-    autoLoad: false, // We'll load manually when needed
-    refreshInterval: 30000 // Refresh every 30 seconds
-  });
+  } = useSessionContext();
 
   // Enhanced solve completion handler with proper state management
   const handleEnhancedSolveComplete = async (result: TimerResult, isUpdate: boolean = false) => {
@@ -56,6 +60,21 @@ const TimerPage: React.FC = () => {
     }
 
     try {
+      // Ensure we have an active session before creating/updating solve
+      // Backend now guarantees a session exists, but let's be defensive
+      if (!currentSession && !sessionLoading) {
+        console.error('⚠️ No session found, ensuring default session exists...');
+        await loadOrCreateSession();
+        
+        // Wait a brief moment for session state to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      // With the guaranteed session approach, this should never happen
+      if (!currentSession) {
+        throw new Error('No session available. Backend guarantees failed - please refresh the page.');
+      }
+      
       if (currentSolveId && isUpdate) {
         // Update existing solve (when penalty is added/removed)
         await SolveService.updateSolve(currentSolveId, {
@@ -65,30 +84,72 @@ const TimerPage: React.FC = () => {
         });
       } else {
         // Create new solve (first time completion)
+        console.log('🎯 Creating solve for session:', currentSession?.id);
+        console.log('🎯 Current session details:', {
+          id: currentSession?.id,
+          name: currentSession?.name,
+          isActive: currentSession?.isActive,
+          solveCount: currentSession?.solveCount
+        });
+        
         if (currentSession) {
           setOptimisticSolveCount((currentSession.solveCount || 0) + 1);
+        } else {
+          console.error('❌ No current session available for solve creation!');
+          throw new Error('No active session available. Please refresh the page.');
         }
         
         const request: CreateSolveRequest = {
-          scrambleId: currentScramble.id,
+          scrambleId: originalScrambleId || currentScramble.id, // Use original scramble ID for retries
           timeMs: Math.round(result.time),
           inspectionTimeMs: Math.round(result.inspectionTime),
           penalty: result.penalty as any,
           solvedAt: result.timestamp.toISOString(),
-          notes: undefined
+          notes: isRetryAttempt ? 'Retry attempt' : undefined
         };
 
         const savedSolve = await SolveService.createSolve(request);
         setCurrentSolveId(savedSolve.id);
+        console.log('✅ Solve created successfully:', savedSolve.id);
       }
       
-      // Refresh session data
+      // Refresh session data and trigger statistics refresh
       if (currentSession) {
         await refreshSession();
         setOptimisticSolveCount(null);
+        
+        // Always trigger statistics refresh for new solves and updates
+        setStatsRefreshTrigger(prev => prev + 1);
+        
+        // Clear retry state after successful solve
+        if (!isUpdate) {
+          setIsRetryAttempt(false);
+          setOriginalScrambleId(null);
+        }
       }
     } catch (error) {
-      console.error('Failed to save/update solve:', error);
+      console.error('❌ Failed to save/update solve:', error);
+      
+      // Handle session-related errors specifically
+      if (error instanceof Error && 
+          (error.message.includes('No active session') || 
+           error.message.includes('session'))) {
+        console.error('⚠️ Session issue detected, attempting to create session...');
+        try {
+          await loadOrCreateSession();
+          console.log('✅ Session created after error, you can retry your solve');
+          alert('Session was recreated. Please try your solve again.');
+        } catch (sessionError) {
+          console.error('❌ Failed to create session after error:', sessionError);
+          alert('Failed to create session. Please refresh the page.');
+        }
+      } else {
+        // Show user-friendly error message for other errors
+        alert(`Failed to save solve: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+      
+      // Reset optimistic updates on error
+      setOptimisticSolveCount(null);
     }
   };
 
@@ -171,21 +232,70 @@ const TimerPage: React.FC = () => {
 
   // Function to generate new scramble (for manual generation)
   const handleGenerateNewScramble = async () => {
+    console.log('handleGenerateNewScramble called');
     const newScramble = await generateScramble();
     if (newScramble) {
+      console.log('New scramble generated:', newScramble.scrambleText);
       setCurrentScramble(newScramble);
+    } else {
+      console.log('Failed to generate new scramble');
     }
+  };
+
+  // Function to retry a specific scramble
+  const handleRetryScramble = (scrambleText: string, puzzleType: PuzzleType, originalScrambleId?: string) => {
+    console.log('Retrying scramble:', scrambleText, 'Original ID:', originalScrambleId);
+    
+    // Create a scramble object from the text
+    const retryScramble = {
+      id: originalScrambleId || `retry-${Date.now()}`, // Use original ID if provided
+      scrambleText,
+      puzzleType,
+      algorithmMoves: scrambleText.split(' ').length,
+      moveCount: scrambleText.split(' ').length,
+      generatedAt: new Date().toISOString(),
+      isCustom: false
+    };
+
+    // Set as current scramble
+    setCurrentScramble(retryScramble);
+    
+    // Track retry state
+    setOriginalScrambleId(originalScrambleId || retryScramble.id);
+    setIsRetryAttempt(true);
+    
+    // Clear any previous solve
+    setCurrentSolveId(null);
+    setOptimisticSolveCount(null);
+    
+    // Reset timer if it's not in READY state
+    if (timerState !== TimerState.READY) {
+      resetTimer();
+    }
+
+    // Update puzzle type if different
+    if (puzzleType !== selectedPuzzleType) {
+      setSelectedPuzzleType(puzzleType);
+    }
+
+    // Visual feedback
+    flashScreen('green');
   };
 
 
 
   // Handle manual scramble generation (from button press)
   const handleGenerateScramble = () => {
-    // Only allow manual generation when timer is ready
-    if (timerState === TimerState.READY) {
+    console.log('Manual scramble generation requested. Timer state:', timerState);
+    
+    // Allow manual generation when timer is ready or finished (not during solving or inspection)
+    if (timerState === TimerState.READY || timerState === TimerState.FINISHED) {
+      console.log('Generating new scramble manually...');
       handleGenerateNewScramble();
       setCurrentSolveId(null);
       setOptimisticSolveCount(null);
+    } else {
+      console.log('Manual scramble generation blocked - timer not in READY or FINISHED state');
     }
   };
 
@@ -199,15 +309,21 @@ const TimerPage: React.FC = () => {
     // Note: Scramble generation will be handled by useEffect when state becomes READY
   };
 
-  // Load session and generate initial scramble on component mount
+  // Generate initial scramble on component mount (session is auto-loaded by context)
   useEffect(() => {
-    loadOrCreateSession();
-    
     // Generate initial scramble only if we don't have one
     if (!currentScramble) {
       handleGenerateNewScramble();
     }
-  }, [loadOrCreateSession]); // Only depend on loadOrCreateSession
+  }, []); // Empty dependency - only run once on mount
+
+  // Ensure session exists when user starts timing (defensive programming)
+  useEffect(() => {
+    if (timerState === TimerState.INSPECTION && !currentSession && !sessionLoading) {
+      console.log('⚠️ TimerPage: No session during inspection, creating one...');
+      loadOrCreateSession();
+    }
+  }, [timerState, currentSession, sessionLoading, loadOrCreateSession]);
 
   // Handle timer state changes for sound effects and scramble pre-generation
   useEffect(() => {
@@ -362,6 +478,8 @@ const TimerPage: React.FC = () => {
             error={sessionError}
             optimisticSolveCount={optimisticSolveCount}
             puzzleType={selectedPuzzleType}
+            refreshTrigger={statsRefreshTrigger}
+            onRetryScramble={handleRetryScramble}
           />
 
           {/* Instructions */}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Target, TrendingUp, BarChart3, List, Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import { SessionDto, SessionStats } from '../../services/sessionService';
-import { SolveService, SolveDto, formatTime, formatTimeWithPenalty, PenaltyType } from '../../services/solveService';
+import { SolveService, SolveDto, formatTime } from '../../services/solveService';
 import { PuzzleType } from '../../services/scrambleService';
+import { SolveDetailItem } from '../solve/SolveDetailItem';
 
 interface SessionStatsDisplayProps {
   session: SessionDto | null;
@@ -10,6 +11,8 @@ interface SessionStatsDisplayProps {
   error: string | null;
   optimisticSolveCount?: number | null;
   puzzleType?: PuzzleType;
+  refreshTrigger?: number; // Add trigger to force statistics refresh
+  onRetryScramble?: (scrambleText: string, puzzleType: PuzzleType, originalScrambleId?: string) => void; // Add retry callback
 }
 
 interface Statistics {
@@ -25,7 +28,9 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
   isLoading,
   error,
   optimisticSolveCount,
-  puzzleType = PuzzleType.CUBE_3X3
+  puzzleType = PuzzleType.CUBE_3X3,
+  refreshTrigger,
+  onRetryScramble
 }) => {
   const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [recentSolves, setRecentSolves] = useState<SolveDto[]>([]);
@@ -33,43 +38,94 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
   const [loadingStats, setLoadingStats] = useState(false);
   const [loadingRecentSolves, setLoadingRecentSolves] = useState(false);
 
-  // Fetch statistics
+  // Fetch statistics (now session-specific)
   useEffect(() => {
     const fetchStats = async () => {
-      if (!session) return;
+      if (!session || !session.id) {
+        console.log('📊 No session available for statistics fetch');
+        return;
+      }
       
       setLoadingStats(true);
       try {
-        const stats = await SolveService.getStatistics(puzzleType);
+        console.log('📊 Fetching SESSION-SPECIFIC statistics for session:', session.id);
+        console.log('📊 Session details:', { 
+          id: session.id, 
+          name: session.name, 
+          isActive: session.isActive,
+          solveCount: session.solveCount 
+        });
+        
+        const stats = await SolveService.getSessionStatistics(session.id);
+        console.log('📊 Session statistics received:', stats);
         setStatistics(stats);
       } catch (error) {
-        console.error('Failed to fetch statistics:', error);
+        console.error('❌ Failed to fetch session statistics:', error);
+        console.error('❌ Error details:', {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          sessionId: session.id,
+          sessionName: session.name,
+          errorType: error?.constructor?.name
+        });
+        
+        // Check if it's a specific session ownership or validation error
+        if (error instanceof Error && (
+          error.message.includes('Session not found') ||
+          error.message.includes('User does not own this session') ||
+          error.message.includes('not owned by you')
+        )) {
+          console.error('🚨 Session ownership/validation error detected');
+          setStatistics(null);
+          return; // Don't fallback for ownership errors
+        }
+        
+        // Fallback to global statistics if session-specific fails
+        try {
+          console.log('📊 Falling back to global statistics...');
+          const globalStats = await SolveService.getStatistics(puzzleType);
+          console.log('📊 Global statistics received as fallback:', globalStats);
+          setStatistics(globalStats);
+        } catch (fallbackError) {
+          console.error('❌ Failed to fetch fallback statistics:', fallbackError);
+          setStatistics(null);
+        }
       } finally {
         setLoadingStats(false);
       }
     };
 
     fetchStats();
-  }, [session, puzzleType]);
+  }, [session, puzzleType, refreshTrigger]); // Add refreshTrigger to dependencies
 
-  // Fetch recent solves when expanding
+  // Fetch recent solves when expanding (now session-specific)
   useEffect(() => {
     const fetchRecentSolves = async () => {
       if (!showRecentSolves || !session) return;
       
       setLoadingRecentSolves(true);
       try {
-        const solves = await SolveService.getRecentSolves(10);
-        setRecentSolves(solves);
+        console.log('📋 Fetching SESSION-SPECIFIC recent solves for session:', session.id);
+        const solves = await SolveService.getSessionSolves(session.id);
+        console.log('📋 Session solves received:', solves.length, 'solves');
+        // Take only the most recent 10 for the "recent solves" section
+        setRecentSolves(solves.slice(0, 10));
       } catch (error) {
-        console.error('Failed to fetch recent solves:', error);
+        console.error('❌ Failed to fetch session solves:', error);
+        // Fallback to global recent solves if session-specific fails
+        try {
+          console.log('📋 Falling back to global recent solves...');
+          const globalSolves = await SolveService.getRecentSolves(10);
+          setRecentSolves(globalSolves);
+        } catch (fallbackError) {
+          console.error('❌ Failed to fetch fallback recent solves:', fallbackError);
+        }
       } finally {
         setLoadingRecentSolves(false);
       }
     };
 
     fetchRecentSolves();
-  }, [showRecentSolves, session]);
+  }, [showRecentSolves, session, refreshTrigger]); // Add refreshTrigger for recent solves too
 
   // Calculate session stats for display with optimistic updates
   const sessionStats = session ? {
@@ -166,7 +222,8 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
         <div className="border-t border-gray-200 pt-6 mb-6">
           <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
-            Rolling Averages
+            Session Rolling Averages
+            <span className="text-xs text-gray-500 font-normal ml-1">(Session-specific)</span>
           </h3>
           
           {loadingStats ? (
@@ -202,6 +259,7 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-600">
                 Personal Best: <span className="font-semibold text-green-600">{formatTime(statistics.personalBest)}</span>
+                <span className="text-xs text-gray-400 ml-1">(All-time)</span>
               </p>
             </div>
           )}
@@ -217,6 +275,7 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
           <div className="flex items-center gap-2">
             <List className="w-4 h-4" />
             Recent Solves
+            <span className="text-xs text-gray-500 font-normal ml-1">(Session-specific)</span>
           </div>
           {showRecentSolves ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
@@ -229,33 +288,15 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
               </div>
             ) : recentSolves.length > 0 ? (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {recentSolves.map((solve, index) => (
-                  <div
+                  <SolveDetailItem
                     key={solve.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-500 font-mono w-6 text-right">
-                        {index + 1}.
-                      </span>
-                      <span className={`font-mono font-semibold ${
-                        solve.penalty === PenaltyType.DNF 
-                          ? 'text-red-600' 
-                          : solve.penalty === PenaltyType.PLUS_TWO 
-                          ? 'text-orange-600' 
-                          : 'text-gray-900'
-                      }`}>
-                        {formatTimeWithPenalty(solve)}
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(solve.solvedAt).toLocaleTimeString([], { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </div>
-                  </div>
+                    solve={solve}
+                    index={index}
+                    onRetryScramble={onRetryScramble}
+                    allSolves={recentSolves}
+                  />
                 ))}
               </div>
             ) : (

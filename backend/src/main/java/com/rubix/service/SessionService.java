@@ -28,15 +28,47 @@ public class SessionService {
     }
 
     /**
-     * Get current active session or create a new one
+     * Get current active session (returns Optional, doesn't auto-create)
+     */
+    public Optional<Session> getCurrentSession(User user) {
+        return sessionRepository.findActiveSessionByUser(user.getId());
+    }
+
+    /**
+     * Get current active session or ensure default session exists
      */
     public Session getCurrentOrCreateSession(User user) {
-        Optional<Session> activeSession = sessionRepository.findActiveSessionByUser(user.getId());
+        Optional<Session> activeSession = getCurrentSession(user);
         
         if (activeSession.isPresent()) {
             return activeSession.get();
         } else {
-            return createNewSession(user, null, Scramble.PuzzleType.CUBE_3X3);
+            return ensureDefaultSession(user);
+        }
+    }
+
+    /**
+     * Ensure user has at least one session (creates default if none exist)
+     */
+    public Session ensureDefaultSession(User user) {
+        logger.info("Ensuring default session exists for user: {}", user.getUsername());
+        
+        // Check if user has any sessions at all
+        List<Session> allUserSessions = sessionRepository.findByUserIdOrderByStartedAtDesc(user.getId(), 1);
+        
+        if (allUserSessions.isEmpty()) {
+            // Create first default session
+            logger.info("Creating first default session for user: {}", user.getUsername());
+            return createNewSession(user, "Default Session", Scramble.PuzzleType.CUBE_3X3);
+        } else {
+            // Activate the most recent session
+            Session mostRecent = allUserSessions.get(0);
+            if (!mostRecent.getIsActive()) {
+                logger.info("Activating most recent session: {} for user: {}", mostRecent.getId(), user.getUsername());
+                mostRecent.setIsActive(true);
+                return sessionRepository.save(mostRecent);
+            }
+            return mostRecent;
         }
     }
 
@@ -59,17 +91,25 @@ public class SessionService {
     }
 
     /**
-     * End current active session
+     * End current active session and automatically create a new one
      */
-    public void endCurrentSession(User user) {
-        logger.debug("Ending current session for user: {}", user.getUsername());
+    public Session endCurrentSession(User user) {
+        logger.info("Ending current session and creating new session for user: {}", user.getUsername());
         
         Optional<Session> activeSession = sessionRepository.findActiveSessionByUser(user.getId());
         if (activeSession.isPresent()) {
             Session session = activeSession.get();
             session.endSession();
             sessionRepository.save(session);
+            logger.info("Ended session: {} for user: {}", session.getId(), user.getUsername());
         }
+        
+        // Automatically create a new session
+        String newSessionName = generateDefaultSessionName();
+        Session newSession = createNewSession(user, newSessionName, Scramble.PuzzleType.CUBE_3X3);
+        logger.info("Auto-created new session: {} for user: {}", newSession.getId(), user.getUsername());
+        
+        return newSession;
     }
 
     /**
@@ -116,7 +156,7 @@ public class SessionService {
     }
 
     /**
-     * Delete session
+     * Delete session and all its associated data
      */
     public void deleteSession(UUID sessionId, User user) {
         logger.info("Deleting session: {} for user: {}", sessionId, user.getUsername());
@@ -124,7 +164,21 @@ public class SessionService {
         Session session = sessionRepository.findByIdAndUserId(sessionId, user.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Session not found or not owned by user"));
 
+        // Prevent deletion of active session
+        if (session.getIsActive()) {
+            throw new IllegalStateException("Cannot delete active session. Please end the session first.");
+        }
+
+        // Prevent deletion of the last session
+        List<Session> allUserSessions = sessionRepository.findByUserIdOrderByStartedAtDesc(user.getId(), Integer.MAX_VALUE);
+        if (allUserSessions.size() <= 1) {
+            throw new IllegalStateException("Cannot delete the last session. At least one session must exist.");
+        }
+
+        // Delete session (cascading deletes will handle associated solves)
         sessionRepository.delete(session);
+        
+        logger.info("Session {} deleted successfully", sessionId);
     }
 
     /**
@@ -157,8 +211,25 @@ public class SessionService {
     }
 
     private String generateDefaultSessionName() {
-        String timestamp = DateTimeFormatter.ofPattern("MMM dd, HH:mm")
-                .format(Instant.now().atZone(java.time.ZoneId.systemDefault()));
-        return "Practice Session - " + timestamp;
+        Instant now = Instant.now();
+        java.time.ZonedDateTime zonedNow = now.atZone(java.time.ZoneId.systemDefault());
+        int hour = zonedNow.getHour();
+        
+        // Generate smart session names like frontend
+        String sessionType;
+        if (hour >= 5 && hour < 12) {
+            sessionType = "Morning Practice";
+        } else if (hour >= 12 && hour < 17) {
+            sessionType = "Afternoon Session";
+        } else if (hour >= 17 && hour < 21) {
+            sessionType = "Evening Practice";
+        } else {
+            sessionType = "Late Night Session";
+        }
+        
+        String dayName = zonedNow.format(DateTimeFormatter.ofPattern("EEEE"));
+        String timeStr = zonedNow.format(DateTimeFormatter.ofPattern("h:mm a"));
+        
+        return String.format("%s - %s %s", sessionType, dayName, timeStr);
     }
 }

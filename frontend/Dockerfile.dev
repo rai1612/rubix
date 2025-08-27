@@ -1,0 +1,23 @@
+# Development Dockerfile for React application with hot reloading
+
+FROM --platform=linux/amd64 node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies first (for better Docker layer caching)  
+COPY package*.json ./
+
+# Set npm registry and install dependencies with specific Rollup platform
+RUN npm config set registry https://registry.npmjs.org/ && \
+    npm cache clean --force && \
+    npm install --legacy-peer-deps && \
+    npm install @rollup/rollup-linux-x64-gnu --save-dev || true
+
+# Copy source code
+COPY . .
+
+# Expose Vite dev server port
+EXPOSE 5173
+
+# Start development server with hot reloading
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

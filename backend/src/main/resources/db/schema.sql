@@ -4,6 +4,9 @@
 -- Enable UUID extension for PostgreSQL
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Enable pgcrypto extension for additional UUID functions
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

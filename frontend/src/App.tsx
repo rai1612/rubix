@@ -13,11 +13,13 @@ import HomePage from './pages/HomePage';
 import TimerPage from './pages/TimerPage';
 import StatisticsPage from './pages/StatisticsPage';
 import AlgorithmsPage from './pages/AlgorithmsPage';
+import AlgorithmDetailPage from './pages/AlgorithmDetailPage';
 import SessionsPage from './pages/SessionsPage';
 import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import NotFoundPage from './pages/NotFoundPage';
+import VisualizerPage from './pages/VisualizerPage';
 
 // Error fallback component
 import ErrorFallback from './components/common/ErrorFallback';
@@ -27,6 +29,10 @@ import { AuthService } from './services/authService';
 
 // Context
 import { SessionProvider } from './context/SessionContext';
+import { TimerProvider } from './context/TimerContext';
+
+// Hooks
+import { useAppearance } from './hooks/useAppearance';
 
 // Styles
 import './index.css';
@@ -44,6 +50,12 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Component to apply appearance settings
+const AppearanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  useAppearance(); // This hook applies appearance settings to the DOM
+  return <>{children}</>;
+};
 
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -71,8 +83,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Checking authentication...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-2 text-adaptive-secondary">Checking authentication...</p>
         </div>
       </div>
     );
@@ -85,8 +97,9 @@ function App() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <QueryClientProvider client={queryClient}>
-        <Router>
-          <div className="min-h-screen bg-gray-50">
+        <AppearanceProvider>
+          <Router>
+            <div className="min-h-screen bg-gray-50">
             <Routes>
               <Route path="/login" element={<LoginPage />} />
                               <Route
@@ -94,7 +107,9 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <SessionProvider>
-                      <Layout />
+                      <TimerProvider>
+                        <Layout />
+                      </TimerProvider>
                     </SessionProvider>
                   </ProtectedRoute>
                 }
@@ -103,6 +118,8 @@ function App() {
                 <Route path="timer" element={<TimerPage />} />
                 <Route path="statistics" element={<StatisticsPage />} />
                 <Route path="algorithms" element={<AlgorithmsPage />} />
+                <Route path="algorithms/:algorithmId" element={<AlgorithmDetailPage />} />
+                <Route path="visualizer" element={<VisualizerPage />} />
                 <Route path="sessions" element={<SessionsPage />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="profile" element={<ProfilePage />} />
@@ -110,8 +127,9 @@ function App() {
               </Route>
             </Routes>
           </div>
-        </Router>
-        <ReactQueryDevtools initialIsOpen={false} />
+          </Router>
+          <ReactQueryDevtools initialIsOpen={false} />
+        </AppearanceProvider>
       </QueryClientProvider>
     </ErrorBoundary>
   );

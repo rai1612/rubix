@@ -82,6 +82,9 @@ public class Algorithm {
     @Column(name = "usage_count", nullable = false)
     private Integer usageCount = 0;
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     // Constructors
     public Algorithm() {}
 
@@ -243,6 +246,14 @@ public class Algorithm {
         this.usageCount = usageCount;
     }
 
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
     // Utility methods
     private Integer calculateMoveCount(String notation) {
         if (notation == null || notation.trim().isEmpty()) {
@@ -281,6 +292,10 @@ public class Algorithm {
 
     public Double getExecutionTimeSeconds() {
         return executionTimeMs != null ? executionTimeMs / 1000.0 : null;
+    }
+    
+    public void setExecutionTimeSeconds(Double executionTimeSeconds) {
+        this.executionTimeMs = executionTimeSeconds != null ? (int) Math.round(executionTimeSeconds * 1000.0) : null;
     }
 
     public List<String> getTagsList() {

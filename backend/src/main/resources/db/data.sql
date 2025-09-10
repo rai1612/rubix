@@ -1,15 +1,31 @@
 -- Sample data for development and testing
 
 -- Insert sample public algorithms (OLL cases)
-INSERT INTO algorithms (id, name, notation_string, case_description, algorithm_set, case_number, difficulty, move_count, is_public, tags) VALUES
-(uuid_generate_v4(), 'OLL 21 - Anti-Sune', 'R U R'' U R U2 R''', 'T-shaped OLL case with bar on back', 'OLL', 21, 2, 7, true, ARRAY['beginner', 'common']),
-(uuid_generate_v4(), 'OLL 26 - Sune', 'R U R'' U R U2 R''', 'T-shaped OLL case with bar on front', 'OLL', 26, 2, 7, true, ARRAY['beginner', 'common']),
-(uuid_generate_v4(), 'OLL 27 - Anti-Sune', 'R'' U'' R U'' R'' U2 R', 'Mirror of Sune', 'OLL', 27, 2, 7, true, ARRAY['beginner', 'common']),
-(uuid_generate_v4(), 'PLL Aa - Adjacent Corner Swap', 'x R'' U R D2 R'' U'' R D2 R2 x''', 'Swaps two adjacent corners', 'PLL', 1, 3, 9, true, ARRAY['corner-swap']),
-(uuid_generate_v4(), 'PLL Ab - Adjacent Corner Swap', 'x R2 D2 R U R'' D2 R U'' R x''', 'Mirror of Aa perm', 'PLL', 2, 3, 9, true, ARRAY['corner-swap']),
-(uuid_generate_v4(), 'PLL T - Adjacent Corner and Edge Swap', 'R U R'' F'' R U R'' U'' R'' F R2 U'' R''', 'T-shaped PLL case', 'PLL', 20, 4, 13, true, ARRAY['advanced']),
-(uuid_generate_v4(), 'F2L Case 1', 'R U'' R''', 'Basic corner-edge pair insertion', 'F2L', 1, 1, 3, true, ARRAY['beginner', 'basic']),
-(uuid_generate_v4(), 'F2L Case 2', 'F R F''', 'Insert from different angle', 'F2L', 2, 2, 3, true, ARRAY['intermediate']);
+-- Using individual INSERT statements to ensure UUID generation works properly
+
+INSERT INTO algorithms (name, notation_string, case_description, algorithm_set, case_number, difficulty, move_count, is_public, is_favorite, tags, usage_count) 
+VALUES ('OLL 21 - Anti-Sune', 'R U R'' U R U2 R''', 'T-shaped OLL case with bar on back', 'OLL', 21, 2, 7, true, false, ARRAY['beginner', 'common'], 0);
+
+INSERT INTO algorithms (name, notation_string, case_description, algorithm_set, case_number, difficulty, move_count, is_public, is_favorite, tags, usage_count) 
+VALUES ('OLL 26 - Sune', 'R U R'' U R U2 R''', 'T-shaped OLL case with bar on front', 'OLL', 26, 2, 7, true, false, ARRAY['beginner', 'common'], 0);
+
+INSERT INTO algorithms (name, notation_string, case_description, algorithm_set, case_number, difficulty, move_count, is_public, is_favorite, tags, usage_count) 
+VALUES ('OLL 27 - Anti-Sune', 'R'' U'' R U'' R'' U2 R', 'Mirror of Sune', 'OLL', 27, 2, 7, true, false, ARRAY['beginner', 'common'], 0);
+
+INSERT INTO algorithms (name, notation_string, case_description, algorithm_set, case_number, difficulty, move_count, is_public, is_favorite, tags, usage_count) 
+VALUES ('PLL Aa - Adjacent Corner Swap', 'x R'' U R D2 R'' U'' R D2 R2 x''', 'Swaps two adjacent corners', 'PLL', 1, 3, 9, true, false, ARRAY['corner-swap'], 0);
+
+INSERT INTO algorithms (name, notation_string, case_description, algorithm_set, case_number, difficulty, move_count, is_public, is_favorite, tags, usage_count) 
+VALUES ('PLL Ab - Adjacent Corner Swap', 'x R2 D2 R U R'' D2 R U'' R x''', 'Mirror of Aa perm', 'PLL', 2, 3, 9, true, false, ARRAY['corner-swap'], 0);
+
+INSERT INTO algorithms (name, notation_string, case_description, algorithm_set, case_number, difficulty, move_count, is_public, is_favorite, tags, usage_count) 
+VALUES ('PLL T - Adjacent Corner and Edge Swap', 'R U R'' F'' R U R'' U'' R'' F R2 U'' R''', 'T-shaped PLL case', 'PLL', 20, 4, 13, true, false, ARRAY['advanced'], 0);
+
+INSERT INTO algorithms (name, notation_string, case_description, algorithm_set, case_number, difficulty, move_count, is_public, is_favorite, tags, usage_count) 
+VALUES ('F2L Case 1', 'R U'' R''', 'Basic corner-edge pair insertion', 'F2L', 1, 1, 3, true, false, ARRAY['beginner', 'basic'], 0);
+
+INSERT INTO algorithms (name, notation_string, case_description, algorithm_set, case_number, difficulty, move_count, is_public, is_favorite, tags, usage_count) 
+VALUES ('F2L Case 2', 'F R F''', 'Insert from different angle', 'F2L', 2, 2, 3, true, false, ARRAY['intermediate'], 0);
 
 -- Insert sample scrambles for testing
 INSERT INTO scrambles (id, scramble_text, puzzle_type, algorithm_moves, is_custom) VALUES

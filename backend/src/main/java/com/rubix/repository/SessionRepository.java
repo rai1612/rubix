@@ -162,6 +162,7 @@ public interface SessionRepository extends JpaRepository<Session, UUID> {
     @Query("DELETE FROM Session s WHERE s.isActive = false AND s.startedAt < :cutoffDate AND s.solveCount = 0")
     void deleteEmptyOldSessions(@Param("cutoffDate") Instant cutoffDate);
 
+
     // Interface for statistics projection
     interface SessionStatistics {
         Long getTotalSessions();

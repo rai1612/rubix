@@ -6,9 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.scheduling.annotation.EnableAsync;
 
-@SpringBootApplication(exclude = {
-    org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration.class
-})
+@SpringBootApplication
 @EnableJpaAuditing
 @EnableAsync
 public class RubixApplication {

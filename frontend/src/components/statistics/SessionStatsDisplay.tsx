@@ -4,6 +4,8 @@ import { SessionDto, SessionStats } from '../../services/sessionService';
 import { SolveService, SolveDto, formatTime } from '../../services/solveService';
 import { PuzzleType } from '../../services/scrambleService';
 import { SolveDetailItem } from '../solve/SolveDetailItem';
+import { useSettings } from '../../hooks/useSettings';
+import { cn, getAdaptiveClasses } from '../../utils/appearanceUtils';
 
 interface SessionStatsDisplayProps {
   session: SessionDto | null;
@@ -37,6 +39,10 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
   const [showRecentSolves, setShowRecentSolves] = useState(false);
   const [loadingStats, setLoadingStats] = useState(false);
   const [loadingRecentSolves, setLoadingRecentSolves] = useState(false);
+  
+  // Get display settings
+  const { settings } = useSettings();
+  const displaySettings = settings.display;
 
   // Fetch statistics (now session-specific)
   useEffect(() => {
@@ -135,10 +141,10 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-adaptive-secondary rounded-lg border border-adaptive-primary p-6">
         <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-sm text-gray-500 mt-2">Loading session...</p>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="text-sm text-adaptive-tertiary mt-2">Loading session...</p>
         </div>
       </div>
     );
@@ -146,9 +152,9 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-adaptive-secondary rounded-lg border border-adaptive-primary p-6">
         <div className="text-center py-8">
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-error">{error}</p>
         </div>
       </div>
     );
@@ -156,26 +162,27 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
 
   if (!sessionStats) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-adaptive-secondary rounded-lg border border-adaptive-primary p-6">
         <div className="text-center py-8">
-          <p className="text-sm text-gray-500">No session data available</p>
+          <p className="text-sm text-adaptive-tertiary">No session data available</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
+    <div className="bg-adaptive-secondary rounded-lg border border-adaptive-primary p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-gray-900">Current Session</h2>
+        <h2 className="text-lg font-semibold text-adaptive-primary">Current Session</h2>
         <div className="flex items-center gap-2">
           {session && (
-            <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+            <span className={cn(
+              'px-3 py-1 text-xs font-medium rounded-full',
               session.isActive 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-gray-100 text-gray-800'
-            }`}>
+                ? cn(getAdaptiveClasses.backgroundSemantic.success, 'text-on-primary')
+                : cn(getAdaptiveClasses.background.tertiary, getAdaptiveClasses.text.secondary)
+            )}>
               {session.isActive ? 'Active' : 'Ended'}
             </span>
           )}
@@ -184,82 +191,88 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
 
       {/* Session Basic Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="text-center p-4 bg-blue-50 rounded-lg">
+        <div className={cn('text-center p-4 rounded-lg', getAdaptiveClasses.background.tertiary)}>
           <div className="flex items-center justify-center mb-2">
-            <BarChart3 className="w-5 h-5 text-blue-600" />
+            <BarChart3 className={cn('w-5 h-5', getAdaptiveClasses.semantic.info)} />
           </div>
-          <p className="text-2xl font-bold text-gray-900">{sessionStats.solveCount}</p>
-          <p className="text-sm text-gray-600">Solves</p>
+          <p className={cn('text-2xl font-bold', getAdaptiveClasses.text.primary)}>{sessionStats.solveCount}</p>
+          <p className={cn('text-sm', getAdaptiveClasses.text.secondary)}>Solves</p>
         </div>
         
-        <div className="text-center p-4 bg-purple-50 rounded-lg">
+        <div className={cn('text-center p-4 rounded-lg', getAdaptiveClasses.background.tertiary)}>
           <div className="flex items-center justify-center mb-2">
-            <Activity className="w-5 h-5 text-purple-600" />
+            <Activity className={cn('w-5 h-5', getAdaptiveClasses.text.secondary)} />
           </div>
-          <p className="text-2xl font-bold text-gray-900">{sessionStats.averageTime}s</p>
-          <p className="text-sm text-gray-600">Average</p>
+          <p className={cn('text-2xl font-bold', getAdaptiveClasses.text.primary)}>{sessionStats.averageTime}s</p>
+          <p className={cn('text-sm', getAdaptiveClasses.text.secondary)}>Average</p>
         </div>
         
-        <div className="text-center p-4 bg-green-50 rounded-lg">
+        <div className={cn('text-center p-4 rounded-lg', getAdaptiveClasses.background.tertiary)}>
           <div className="flex items-center justify-center mb-2">
-            <Target className="w-5 h-5 text-green-600" />
+            <Target className={cn('w-5 h-5', getAdaptiveClasses.semantic.success)} />
           </div>
-          <p className="text-2xl font-bold text-green-600">{sessionStats.bestTime}s</p>
-          <p className="text-sm text-gray-600">Best</p>
+          <p className={cn('text-2xl font-bold', getAdaptiveClasses.semantic.success)}>{sessionStats.bestTime}s</p>
+          <p className={cn('text-sm', getAdaptiveClasses.text.secondary)}>Best</p>
         </div>
         
-        <div className="text-center p-4 bg-yellow-50 rounded-lg">
+        <div className={cn('text-center p-4 rounded-lg', getAdaptiveClasses.background.tertiary)}>
           <div className="flex items-center justify-center mb-2">
-            <Clock className="w-5 h-5 text-yellow-600" />
+            <Clock className={cn('w-5 h-5', getAdaptiveClasses.semantic.warning)} />
           </div>
-          <p className="text-2xl font-bold text-gray-900">{sessionStats.duration}</p>
-          <p className="text-sm text-gray-600">Duration</p>
+          <p className={cn('text-2xl font-bold', getAdaptiveClasses.text.primary)}>{sessionStats.duration}</p>
+          <p className={cn('text-sm', getAdaptiveClasses.text.secondary)}>Duration</p>
         </div>
       </div>
 
       {/* Rolling Averages */}
       {statistics && (
-        <div className="border-t border-gray-200 pt-6 mb-6">
-          <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
+        <div className="border-t border-adaptive-primary pt-6 mb-6">
+          <h3 className="text-md font-medium text-adaptive-primary mb-4 flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
             Session Rolling Averages
-            <span className="text-xs text-gray-500 font-normal ml-1">(Session-specific)</span>
+            <span className="text-xs text-adaptive-tertiary font-normal ml-1">(Session-specific)</span>
           </h3>
           
           {loadingStats ? (
             <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <p className="text-lg font-bold text-gray-900">
-                  {statistics.currentAo5 ? formatTime(statistics.currentAo5) : '--'}
-                </p>
-                <p className="text-sm text-gray-600">Ao5</p>
-              </div>
+              {displaySettings.showAo5 && (
+                <div className="text-center p-3 bg-adaptive-tertiary rounded-lg">
+                  <p className="text-lg font-bold text-adaptive-primary">
+                    {statistics.currentAo5 ? formatTime(statistics.currentAo5) : '--'}
+                  </p>
+                  <p className="text-sm text-adaptive-secondary">Ao5</p>
+                </div>
+              )}
               
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <p className="text-lg font-bold text-gray-900">
-                  {statistics.currentAo12 ? formatTime(statistics.currentAo12) : '--'}
-                </p>
-                <p className="text-sm text-gray-600">Ao12</p>
-              </div>
+              {displaySettings.showAo12 && (
+                <div className="text-center p-3 bg-adaptive-tertiary rounded-lg">
+                  <p className="text-lg font-bold text-adaptive-primary">
+                    {statistics.currentAo12 ? formatTime(statistics.currentAo12) : '--'}
+                  </p>
+                  <p className="text-sm text-adaptive-secondary">Ao12</p>
+                </div>
+              )}
               
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <p className="text-lg font-bold text-gray-900">
-                  {statistics.currentAo100 ? formatTime(statistics.currentAo100) : '--'}
-                </p>
-                <p className="text-sm text-gray-600">Ao100</p>
-              </div>
+              {displaySettings.showAo100 && (
+                <div className="text-center p-3 bg-adaptive-tertiary rounded-lg">
+                  <p className="text-lg font-bold text-adaptive-primary">
+                    {statistics.currentAo100 ? formatTime(statistics.currentAo100) : '--'}
+                  </p>
+                  <p className="text-sm text-adaptive-secondary">Ao100</p>
+                </div>
+              )}
             </div>
           )}
           
-          {statistics.personalBest && (
+          {displaySettings.showPersonalBest && statistics.personalBest && (
             <div className="mt-4 text-center">
-              <p className="text-sm text-gray-600">
-                Personal Best: <span className="font-semibold text-green-600">{formatTime(statistics.personalBest)}</span>
-                <span className="text-xs text-gray-400 ml-1">(All-time)</span>
+              <p className="text-sm text-adaptive-secondary">
+                Personal Best: <span className="font-semibold text-success">{formatTime(statistics.personalBest)}</span>
+                <span className="text-xs text-adaptive-tertiary ml-1">(All-time)</span>
               </p>
             </div>
           )}
@@ -267,15 +280,15 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
       )}
 
       {/* Recent Solves Toggle */}
-      <div className="border-t border-gray-200 pt-6">
+      <div className="border-t border-adaptive-primary pt-6">
         <button
           onClick={() => setShowRecentSolves(!showRecentSolves)}
-          className="w-full flex items-center justify-between text-md font-medium text-gray-900 hover:text-gray-700 transition-colors"
+          className="w-full flex items-center justify-between text-md font-medium text-adaptive-primary hover:text-adaptive-secondary transition-colors"
         >
           <div className="flex items-center gap-2">
             <List className="w-4 h-4" />
             Recent Solves
-            <span className="text-xs text-gray-500 font-normal ml-1">(Session-specific)</span>
+            <span className="text-xs text-adaptive-tertiary font-normal ml-1">(Session-specific)</span>
           </div>
           {showRecentSolves ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
@@ -285,7 +298,7 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
           <div className="mt-4">
             {loadingRecentSolves ? (
               <div className="flex justify-center py-4">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
               </div>
             ) : recentSolves.length > 0 ? (
               <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -301,7 +314,7 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
               </div>
             ) : (
               <div className="text-center py-4">
-                <p className="text-sm text-gray-500">No recent solves</p>
+                <p className="text-sm text-adaptive-tertiary">No recent solves</p>
               </div>
             )}
           </div>
@@ -310,8 +323,8 @@ export const SessionStatsDisplay: React.FC<SessionStatsDisplayProps> = ({
 
       {/* Session Info */}
       {session && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="text-xs text-gray-500 text-center">
+        <div className="mt-4 pt-4 border-t border-adaptive-primary">
+          <div className="text-xs text-adaptive-tertiary text-center">
             Session: {session.name}
           </div>
         </div>

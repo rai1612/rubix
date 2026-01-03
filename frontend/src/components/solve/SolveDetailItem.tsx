@@ -16,6 +16,7 @@ import {
   Target
 } from 'lucide-react';
 import { SolveDto, formatTime, formatTimeWithPenalty, PenaltyType } from '../../services/solveService';
+import { cn, getAdaptiveClasses } from '../../utils/appearanceUtils';
 import { PuzzleType } from '../../services/scrambleService';
 
 interface SolveDetailItemProps {
@@ -43,14 +44,15 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
   const isRetryAttempt = solve.notes?.includes('Retry attempt') || otherAttempts.length > 0;
   
   // Find best attempt on this scramble
-  const bestAttempt = [solve, ...otherAttempts]
-    .filter(s => s.penalty !== PenaltyType.DNF)
-    .reduce((best, current) => 
-      current.adjustedTimeMs < best.adjustedTimeMs ? current : best
-    );
+  const validAttempts = [solve, ...otherAttempts].filter(s => s.penalty !== PenaltyType.DNF);
+  const bestAttempt = validAttempts.length > 0 
+    ? validAttempts.reduce((best, current) => 
+        current.adjustedTimeMs < best.adjustedTimeMs ? current : best
+      )
+    : solve; // Fallback to current solve if no valid attempts
   
-  // Check if this is the best attempt
-  const isBestAttempt = bestAttempt.id === solve.id;
+  // Check if this is the best attempt (only meaningful if there are multiple valid attempts)
+  const isBestAttempt = validAttempts.length > 1 && bestAttempt.id === solve.id;
   
   // Find previous attempt (chronologically before this one)
   const previousAttempt = otherAttempts
@@ -105,11 +107,11 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
   const getPenaltyColor = (penalty: PenaltyType) => {
     switch (penalty) {
       case PenaltyType.DNF:
-        return 'text-red-600 bg-red-50 border-red-200';
+        return cn('text-on-primary', getAdaptiveClasses.backgroundSemantic.error, 'border-error');
       case PenaltyType.PLUS_TWO:
-        return 'text-orange-600 bg-orange-50 border-orange-200';
+        return cn('text-on-primary', getAdaptiveClasses.backgroundSemantic.warning, 'border-warning');
       default:
-        return 'text-green-600 bg-green-50 border-green-200';
+        return cn('text-on-primary', getAdaptiveClasses.backgroundSemantic.success, 'border-success');
     }
   };
 
@@ -128,19 +130,19 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
     <div className="border border-gray-200 rounded-lg bg-white hover:shadow-sm transition-shadow">
       {/* Compact Header */}
       <div 
-        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+        className="flex items-center justify-between p-3 cursor-pointer hover:bg-adaptive-tertiary transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
-          <span className="text-gray-500 font-mono w-6 text-right text-sm">
+          <span className="text-adaptive-tertiary font-mono w-6 text-right text-sm">
             {index + 1}.
           </span>
           <span className={`font-mono font-bold text-lg ${
             solve.penalty === PenaltyType.DNF 
-              ? 'text-red-600' 
+              ? getAdaptiveClasses.semantic.error
               : solve.penalty === PenaltyType.PLUS_TWO 
-              ? 'text-orange-600' 
-              : 'text-gray-900'
+              ? getAdaptiveClasses.semantic.warning
+              : getAdaptiveClasses.text.primary
           }`}>
             {formatTimeWithPenalty(solve)}
           </span>
@@ -150,15 +152,15 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
           
           {/* Retry attempt indicator */}
           {isRetryAttempt && (
-            <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+            <span className={cn('flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border', getAdaptiveClasses.backgroundSemantic.info, 'text-on-primary', 'border-info')}>
               <Repeat className="w-3 h-3" />
               <span>Retry</span>
             </span>
           )}
           
           {/* Best attempt indicator */}
-          {isBestAttempt && otherAttempts.length > 0 && (
-            <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200">
+          {isBestAttempt && (
+            <span className={cn('flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border', getAdaptiveClasses.backgroundSemantic.warning, 'text-on-primary', 'border-warning')}>
               <Trophy className="w-3 h-3" />
               <span>Best</span>
             </span>
@@ -166,11 +168,11 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
           
           {/* Improvement indicator */}
           {improvement !== null && (
-            <span className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border ${
+            <span             className={cn('flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border',
               improvement > 0 
-                ? 'bg-green-50 text-green-700 border-green-200' 
-                : 'bg-red-50 text-red-700 border-red-200'
-            }`}>
+                ? cn(getAdaptiveClasses.backgroundSemantic.success, 'text-on-primary', 'border-success')
+                : cn(getAdaptiveClasses.backgroundSemantic.error, 'text-on-primary', 'border-error')
+            )}>
               {improvement > 0 ? (
                 <>
                   <TrendingUp className="w-3 h-3" />
@@ -187,13 +189,13 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-adaptive-tertiary">
             {formatDate(solve.solvedAt)}
           </span>
           {isExpanded ? (
-            <ChevronUp className="w-4 h-4 text-gray-400" />
+            <ChevronUp className="w-4 h-4 text-adaptive-tertiary" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-gray-400" />
+            <ChevronDown className="w-4 h-4 text-adaptive-tertiary" />
           )}
         </div>
       </div>
@@ -204,18 +206,18 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
           {/* Solve Statistics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-blue-500" />
+              <Clock className={cn('w-4 h-4', getAdaptiveClasses.semantic.info)} />
               <div>
-                <p className="text-xs text-gray-500">Solve Time</p>
+                <p className="text-xs text-adaptive-tertiary">Solve Time</p>
                 <p className="text-sm font-mono font-semibold">{formatTime(solve.timeMs)}</p>
               </div>
             </div>
             
             {solve.inspectionTimeMs > 0 && (
               <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-purple-500" />
+                <Eye className={cn('w-4 h-4', getAdaptiveClasses.text.secondary)} />
                 <div>
-                  <p className="text-xs text-gray-500">Inspection</p>
+                  <p className="text-xs text-adaptive-tertiary">Inspection</p>
                   <p className="text-sm font-mono font-semibold">{formatTime(solve.inspectionTimeMs)}</p>
                 </div>
               </div>
@@ -223,9 +225,9 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
             
             {solve.moveCount && (
               <div className="flex items-center gap-2">
-                <Hash className="w-4 h-4 text-green-500" />
+                <Hash className={cn('w-4 h-4', getAdaptiveClasses.semantic.success)} />
                 <div>
-                  <p className="text-xs text-gray-500">Moves</p>
+                  <p className="text-xs text-adaptive-tertiary">Moves</p>
                   <p className="text-sm font-mono font-semibold">{solve.moveCount}</p>
                 </div>
               </div>
@@ -233,9 +235,9 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
             
             {solve.tps && (
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-yellow-500" />
+                <Zap className={cn('w-4 h-4', getAdaptiveClasses.semantic.warning)} />
                 <div>
-                  <p className="text-xs text-gray-500">TPS</p>
+                  <p className="text-xs text-adaptive-tertiary">TPS</p>
                   <p className="text-sm font-mono font-semibold">{solve.tps.toFixed(2)}</p>
                 </div>
               </div>
@@ -243,14 +245,14 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
           </div>
 
           {/* Full Date and Session */}
-          <div className="flex items-center gap-4 text-sm text-gray-600">
+          <div className="flex items-center gap-4 text-sm text-adaptive-secondary">
             <div className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
               <span>{new Date(solve.solvedAt).toLocaleString()}</span>
             </div>
             {solve.sessionName && (
               <div>
-                <span className="text-gray-400">Session:</span> {solve.sessionName}
+                <span className="text-adaptive-tertiary">Session:</span> {solve.sessionName}
               </div>
             )}
           </div>
@@ -258,17 +260,17 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
           {/* Scramble */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-gray-900">Scramble</h4>
+              <h4 className="text-sm font-semibold text-adaptive-primary">Scramble</h4>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleCopyScramble}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-adaptive-tertiary hover:text-adaptive-primary transition-colors"
                   title="Copy scramble"
                 >
                   {copiedScramble ? (
                     <>
-                      <Check className="w-3 h-3 text-green-500" />
-                      <span className="text-green-500">Copied!</span>
+                      <Check className={cn('w-3 h-3', getAdaptiveClasses.semantic.success)} />
+                      <span className={getAdaptiveClasses.semantic.success}>Copied!</span>
                     </>
                   ) : (
                     <>
@@ -281,7 +283,7 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
                 {onRetryScramble && (
                   <button
                     onClick={handleRetryScramble}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-on-primary rounded-md transition-colors"
                     title="Retry this scramble"
                   >
                     <Repeat className="w-3 h-3" />
@@ -296,7 +298,7 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
                 {solve.scrambleText?.split(' ').map((move, idx) => (
                   <span
                     key={idx}
-                    className="bg-white px-2 py-1 rounded border text-sm font-mono font-semibold text-gray-700 shadow-sm"
+                    className="bg-white px-2 py-1 rounded border text-sm font-mono font-semibold text-adaptive-primary shadow-sm"
                   >
                     {move}
                   </span>
@@ -308,9 +310,9 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
           {/* Notes */}
           {solve.notes && (
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-gray-900">Notes</h4>
+              <h4 className="text-sm font-semibold text-adaptive-primary">Notes</h4>
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-sm text-gray-700">{solve.notes}</p>
+                <p className="text-sm text-adaptive-primary">{solve.notes}</p>
               </div>
             </div>
           )}
@@ -318,12 +320,12 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
           {/* Tags */}
           {solve.tags && solve.tags.length > 0 && (
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-gray-900">Tags</h4>
+              <h4 className="text-sm font-semibold text-adaptive-primary">Tags</h4>
               <div className="flex flex-wrap gap-2">
                 {solve.tags.map((tag, idx) => (
                   <span
                     key={idx}
-                    className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                    className={cn('px-2 py-1 text-xs rounded-full', getAdaptiveClasses.backgroundSemantic.info, 'text-on-primary')}
                   >
                     {tag}
                   </span>
@@ -335,7 +337,7 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
           {/* Other Attempts on Same Scramble */}
           {otherAttempts.length > 0 && (
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <h4 className="text-sm font-semibold text-adaptive-primary flex items-center gap-2">
                 <Target className="w-4 h-4" />
                 Other Attempts ({otherAttempts.length})
               </h4>
@@ -347,18 +349,18 @@ export const SolveDetailItem: React.FC<SolveDetailItemProps> = ({
                       <div className="flex items-center gap-2">
                         <span className={`font-mono text-sm font-semibold ${
                           attempt.penalty === PenaltyType.DNF 
-                            ? 'text-red-600' 
+                            ? getAdaptiveClasses.semantic.error
                             : attempt.penalty === PenaltyType.PLUS_TWO 
-                            ? 'text-orange-600' 
-                            : 'text-gray-900'
+                            ? getAdaptiveClasses.semantic.warning
+                            : getAdaptiveClasses.text.primary
                         }`}>
                           {formatTimeWithPenalty(attempt)}
                         </span>
                         {attempt.id === bestAttempt.id && (
-                          <Trophy className="w-3 h-3 text-yellow-500" />
+                          <Trophy className={cn('w-3 h-3', getAdaptiveClasses.semantic.warning)} />
                         )}
                       </div>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-adaptive-tertiary">
                         {formatDate(attempt.solvedAt)}
                       </span>
                     </div>

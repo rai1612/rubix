@@ -30,8 +30,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'query-vendor': ['@tanstack/react-query'],
-          'three-vendor': ['three', '@react-three/fiber', '@react-three/drei']
+          'query-vendor': ['@tanstack/react-query']
         }
       }
     },

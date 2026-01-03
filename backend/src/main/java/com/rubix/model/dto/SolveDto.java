@@ -255,6 +255,7 @@ public class SolveDto {
         return penalty != null && penalty != Solve.Penalty.NONE;
     }
 
+
     public String getFormattedTime() {
         if (penalty == Solve.Penalty.DNF) return "DNF";
         if (timeMs == null) return "--";

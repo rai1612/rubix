@@ -1,4 +1,5 @@
 // Timer-related utilities and types
+import { getAdaptiveClasses } from './appearanceUtils';
 
 export enum TimerState {
   READY = 'READY',
@@ -50,14 +51,15 @@ export const formatTime = (timeMs: number, precision: number = 2): string => {
 /**
  * Format time for display with penalty indication
  * @param result Timer result object
+ * @param precision Number of decimal places (default: 2)
  * @returns Formatted string with penalty notation
  */
-export const formatTimeWithPenalty = (result: TimerResult): string => {
+export const formatTimeWithPenalty = (result: TimerResult, precision: number = 2): string => {
   if (result.penalty === PenaltyType.DNF) {
     return 'DNF';
   }
   
-  const baseTime = formatTime(result.time);
+  const baseTime = formatTime(result.time, precision);
   return result.penalty === PenaltyType.PLUS_TWO ? `${baseTime}+` : baseTime;
 };
 
@@ -125,19 +127,19 @@ export const calculateAdjustedTime = (originalTime: number, penalty: PenaltyType
 export const getTimerStateColor = (state: TimerState, inspectionTimeRemaining?: number): string => {
   switch (state) {
     case TimerState.READY:
-      return 'text-gray-600';
+      return 'timer-ready';
     case TimerState.INSPECTION:
       if (inspectionTimeRemaining !== undefined) {
-        if (inspectionTimeRemaining <= 3) return 'text-red-500';
-        if (inspectionTimeRemaining <= 8) return 'text-yellow-500';
+        if (inspectionTimeRemaining <= 3) return 'timer-inspection-danger';
+        if (inspectionTimeRemaining <= 8) return 'timer-inspection-warning';
       }
-      return 'text-blue-500';
+      return 'timer-inspection';
     case TimerState.SOLVING:
-      return 'text-green-500';
+      return 'timer-solving';
     case TimerState.FINISHED:
-      return 'text-gray-900';
+      return 'timer-finished';
     default:
-      return 'text-gray-600';
+      return 'timer-ready';
   }
 };
 
@@ -241,16 +243,16 @@ export const getTimeCategory = (timeMs: number): string => {
  * @returns CSS color class
  */
 export const getTimeColor = (timeMs: number, personalBest?: number): string => {
-  if (personalBest && timeMs <= personalBest) return 'text-green-600';
+  if (personalBest && timeMs <= personalBest) return getAdaptiveClasses.semantic.success;
   
   const seconds = timeMs / 1000;
   
-  if (seconds < 12) return 'text-green-500';
-  if (seconds < 18) return 'text-blue-500';
-  if (seconds < 25) return 'text-yellow-500';
-  if (seconds < 35) return 'text-orange-500';
+  if (seconds < 12) return getAdaptiveClasses.semantic.success;
+  if (seconds < 18) return getAdaptiveClasses.semantic.info;
+  if (seconds < 25) return getAdaptiveClasses.semantic.warning;
+  if (seconds < 35) return getAdaptiveClasses.semantic.warning;
   
-  return 'text-red-500';
+  return getAdaptiveClasses.semantic.error;
 };
 
 /**

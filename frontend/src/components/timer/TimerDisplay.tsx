@@ -1,5 +1,6 @@
 import React from 'react';
-import { TimerState, formatTime } from '../../utils/timerUtils';
+import { TimerState, TimerMode, formatTime } from '../../utils/timerUtils';
+import { getAdaptiveClasses } from '../../utils/appearanceUtils';
 
 interface TimerDisplayProps {
   state: TimerState;
@@ -9,6 +10,11 @@ interface TimerDisplayProps {
   lastSolveTime?: number;
   disabled?: boolean;
   hideTime?: boolean;
+  mode?: TimerMode;
+  precision?: number;
+  enableInspectionWarning?: boolean;
+  inspectionWarningTime?: number;
+  isHolding?: boolean;
   className?: string;
 }
 
@@ -20,41 +26,52 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
   lastSolveTime,
   disabled = false,
   hideTime = false,
+  mode = TimerMode.NORMAL,
+  precision = 2,
+  enableInspectionWarning = true,
+  inspectionWarningTime = 8,
+  isHolding = false,
   className = ''
 }) => {
   // Get display time based on current state
   const getDisplayTime = () => {
     if (state === TimerState.FINISHED && lastSolveTime !== undefined) {
-      return formatTime(lastSolveTime);
+      return formatTime(lastSolveTime, precision);
     } else if (state === TimerState.SOLVING) {
-      return hideTime ? '???' : formatTime(currentTime);
+      return hideTime ? '???' : formatTime(currentTime, precision);
     } else if (state === TimerState.INSPECTION) {
       const remaining = Math.ceil(inspectionTimeRemaining / 1000);
       return remaining > 0 ? remaining.toString() : 'GO!';
     }
-    return '0.00';
+    return precision === 3 ? '0.000' : '0.00';
   };
 
   // Get timer color based on state
   const getTimerColor = () => {
     if (state === TimerState.INSPECTION) {
       const remaining = inspectionTimeRemaining / 1000;
-      if (remaining <= 3) return 'text-red-500';
-      if (remaining <= 8) return 'text-yellow-500';
-      return 'text-blue-500';
+      if (remaining <= 3) return getAdaptiveClasses.semantic.error; // Critical warning (always red at 3s)
+      if (enableInspectionWarning && remaining <= inspectionWarningTime) return getAdaptiveClasses.semantic.warning;
+      return getAdaptiveClasses.semantic.info;
     } else if (state === TimerState.SOLVING) {
-      return hideTime ? 'text-gray-400' : 'text-green-500';
+      return hideTime ? 'text-adaptive-tertiary' : getAdaptiveClasses.semantic.success;
     } else if (state === TimerState.FINISHED) {
-      return 'text-gray-900';
+      return 'text-adaptive-primary';
     }
-    return 'text-gray-600';
+    return 'text-adaptive-secondary';
   };
 
-  // Get instructions based on state
+  // Get instructions based on state and mode
   const getInstructions = () => {
     switch (state) {
       case TimerState.READY:
-        return 'Press SPACE to start inspection';
+        if (mode === TimerMode.NO_INSPECTION) {
+          return 'Press SPACE to start solving';
+        } else if (mode === TimerMode.STACKMAT) {
+          return 'Use your Stackmat timer to start';
+        } else {
+          return 'Press SPACE to start inspection';
+        }
       case TimerState.INSPECTION:
         return 'Inspect your cube, then SPACE to start solving';
       case TimerState.SOLVING:
@@ -75,11 +92,22 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
           transition-all duration-300 ${getTimerColor()}
           ${disabled ? 'opacity-50' : ''}
           ${state === TimerState.SOLVING || state === TimerState.INSPECTION ? 'scale-110' : 'scale-100'}
+          ${isHolding ? 'scale-105' : ''}
         `}
         style={{ fontFeatureSettings: '"tnum"' }} // Ensure monospace numbers
       >
         {getDisplayTime()}
       </div>
+
+      {/* Hold to Release Indicator */}
+      {isHolding && (
+        <div className="mb-6">
+          <div className="w-64 bg-primary-100 border-2 border-primary-500 rounded-lg h-4 flex items-center justify-center">
+            <div className="w-full bg-primary-500 rounded h-2" />
+          </div>
+          <p className="text-sm text-primary-600 font-medium mt-2">Ready! Release spacebar to start</p>
+        </div>
+      )}
 
       {/* Inspection Time Progress Bar */}
       {state === TimerState.INSPECTION && (
@@ -88,7 +116,7 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
             <div
               className={`h-2 rounded-full transition-all duration-100 ${
                 inspectionTimeRemaining / 1000 <= 3 ? 'bg-red-500' :
-                inspectionTimeRemaining / 1000 <= 8 ? 'bg-yellow-500' : 'bg-blue-500'
+                (enableInspectionWarning && inspectionTimeRemaining / 1000 <= inspectionWarningTime) ? 'bg-yellow-500' : 'bg-blue-500'
               }`}
               style={{
                 width: `${(inspectionTimeRemaining / (inspectionTime * 1000)) * 100}%`
@@ -101,15 +129,15 @@ export const TimerDisplay: React.FC<TimerDisplayProps> = ({
       {/* Instructions - Only show when not actively solving */}
       {state !== TimerState.SOLVING && (
         <>
-          <p className="text-gray-600 text-center mb-8 max-w-md">
+          <p className="text-adaptive-secondary text-center mb-8 max-w-md">
             {getInstructions()}
           </p>
 
           {/* Keyboard Shortcuts - Only when ready or finished */}
           {(state === TimerState.READY || state === TimerState.FINISHED) && (
-            <div className="mt-8 text-sm text-gray-500 text-center">
-              <p>Keyboard: <kbd className="px-2 py-1 bg-gray-100 rounded">SPACE</kbd> to control timer</p>
-              <p><kbd className="px-2 py-1 bg-gray-100 rounded">R</kbd> to reset</p>
+            <div className="mt-8 text-sm text-adaptive-tertiary text-center">
+              <p>Keyboard: <kbd className="px-2 py-1 bg-adaptive-tertiary rounded">SPACE</kbd> to control timer</p>
+              <p><kbd className="px-2 py-1 bg-adaptive-tertiary rounded">R</kbd> to reset</p>
             </div>
           )}
         </>

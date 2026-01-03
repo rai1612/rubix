@@ -4,10 +4,12 @@ import { useSessionContext } from '../context/SessionContext';
 import { SessionService, SessionDto } from '../services/sessionService';
 import { formatTime, SolveService, SolveDto, PenaltyType } from '../services/solveService';
 import { PuzzleType } from '../services/scrambleService';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { cn, getAdaptiveClasses } from '../utils/appearanceUtils';
 
 const SessionsPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { 
     currentSession, 
     isLoading: sessionLoading, 
@@ -37,6 +39,35 @@ const SessionsPage: React.FC = () => {
   useEffect(() => {
     loadSessionHistory();
   }, []);
+
+  // Handle URL parameters (from search results)
+  useEffect(() => {
+    const sessionId = searchParams.get('id');
+    if (sessionId && allSessions.length > 0) {
+      // Find and open the session modal
+      const session = allSessions.find(s => s.id === sessionId);
+      if (session) {
+        setSelectedSession(session);
+        setIsSessionModalOpen(true);
+        
+        // Load session solves for detailed metrics
+        setLoadingSessionSolves(true);
+        SolveService.getSessionSolves(sessionId)
+          .then(solves => setSessionSolves(solves))
+          .catch(error => {
+            console.error('Failed to load session solves:', error);
+            setSessionSolves([]);
+          })
+          .finally(() => setLoadingSessionSolves(false));
+      }
+      
+      // Clear the URL parameter after handling it
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('id');
+      newSearchParams.delete('solveId'); // Also clear solveId if present
+      setSearchParams(newSearchParams, { replace: true });
+    }
+  }, [searchParams, allSessions, setSearchParams]);
 
   // Load session history and calculate stats
   const loadSessionHistory = async () => {
@@ -308,8 +339,8 @@ const SessionsPage: React.FC = () => {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Practice Sessions</h1>
-        <p className="text-gray-600">
+        <h1 className="text-3xl font-bold text-adaptive-primary mb-2">Practice Sessions</h1>
+        <p className="text-adaptive-secondary">
           Organize your practice and track your improvement over time
         </p>
       </div>
@@ -319,9 +350,9 @@ const SessionsPage: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center space-x-3 mb-4">
             <div className="p-2 bg-blue-100 rounded-lg">
-              <Calendar className="w-6 h-6 text-blue-600" />
+              <Calendar className={cn('w-6 h-6', getAdaptiveClasses.semantic.info)} />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900">Total Sessions</h3>
+            <h3 className="text-lg font-semibold text-adaptive-primary">Total Sessions</h3>
           </div>
           {loadingHistory ? (
             <div className="animate-pulse">
@@ -330,8 +361,8 @@ const SessionsPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <p className="text-3xl font-bold text-gray-900 mb-2">{sessionStats.totalSessions}</p>
-              <p className="text-sm text-gray-600">
+              <p className="text-3xl font-bold text-adaptive-primary mb-2">{sessionStats.totalSessions}</p>
+              <p className="text-sm text-adaptive-secondary">
                 {allSessions.filter(s => {
                   const weekAgo = new Date();
                   weekAgo.setDate(weekAgo.getDate() - 7);
@@ -345,9 +376,9 @@ const SessionsPage: React.FC = () => {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center space-x-3 mb-4">
             <div className="p-2 bg-green-100 rounded-lg">
-              <Clock className="w-6 h-6 text-green-600" />
+              <Clock className={cn('w-6 h-6', getAdaptiveClasses.semantic.success)} />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900">Total Practice Time</h3>
+            <h3 className="text-lg font-semibold text-adaptive-primary">Total Practice Time</h3>
           </div>
           {loadingHistory ? (
             <div className="animate-pulse">
@@ -356,8 +387,8 @@ const SessionsPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <p className="text-3xl font-bold text-gray-900 mb-2">{formatDuration(sessionStats.totalPracticeTime)}</p>
-              <p className="text-sm text-green-600">
+              <p className="text-3xl font-bold text-adaptive-primary mb-2">{formatDuration(sessionStats.totalPracticeTime)}</p>
+              <p className={cn('text-sm', getAdaptiveClasses.semantic.success)}>
                 {formatDuration(allSessions.filter(s => {
                   const weekAgo = new Date();
                   weekAgo.setDate(weekAgo.getDate() - 7);
@@ -370,10 +401,10 @@ const SessionsPage: React.FC = () => {
 
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center space-x-3 mb-4">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <BarChart3 className="w-6 h-6 text-purple-600" />
+            <div className={cn('p-2 rounded-lg', getAdaptiveClasses.background.tertiary)}>
+              <BarChart3 className={cn('w-6 h-6', getAdaptiveClasses.text.secondary)} />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900">Avg Session Length</h3>
+            <h3 className="text-lg font-semibold text-adaptive-primary">Avg Session Length</h3>
           </div>
           {loadingHistory ? (
             <div className="animate-pulse">
@@ -382,8 +413,8 @@ const SessionsPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <p className="text-3xl font-bold text-gray-900 mb-2">{formatDuration(sessionStats.avgSessionLength)}</p>
-              <p className="text-sm text-gray-600">
+              <p className="text-3xl font-bold text-adaptive-primary mb-2">{formatDuration(sessionStats.avgSessionLength)}</p>
+              <p className="text-sm text-adaptive-secondary">
                 {sessionStats.totalSessions > 0 ? Math.round(sessionStats.totalSolves / sessionStats.totalSessions) : 0} solves avg
               </p>
             </>
@@ -395,7 +426,7 @@ const SessionsPage: React.FC = () => {
             <div className="p-2 bg-orange-100 rounded-lg">
               <BarChart3 className="w-6 h-6 text-orange-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900">Total Solves</h3>
+            <h3 className="text-lg font-semibold text-adaptive-primary">Total Solves</h3>
           </div>
           {loadingHistory ? (
             <div className="animate-pulse">
@@ -404,8 +435,8 @@ const SessionsPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <p className="text-3xl font-bold text-gray-900 mb-2">{sessionStats.totalSolves}</p>
-              <p className="text-sm text-gray-600">Across all sessions</p>
+              <p className="text-3xl font-bold text-adaptive-primary mb-2">{sessionStats.totalSolves}</p>
+              <p className="text-sm text-adaptive-secondary">Across all sessions</p>
             </>
           )}
         </div>
@@ -429,55 +460,55 @@ const SessionsPage: React.FC = () => {
       ) : currentSession ? (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Current Session</h2>
-            <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+            <h2 className="text-xl font-semibold text-adaptive-primary">Current Session</h2>
+            <span className={cn('px-3 py-1 text-sm font-medium rounded-full', getAdaptiveClasses.backgroundSemantic.success, 'text-on-primary')}>
               {currentSession.isActive ? 'Active' : 'Ended'}
             </span>
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{currentSession.solveCount || 0}</p>
-              <p className="text-sm text-gray-600">Solves</p>
+              <p className="text-2xl font-bold text-adaptive-primary">{currentSession.solveCount || 0}</p>
+              <p className="text-sm text-adaptive-secondary">Solves</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-adaptive-primary">
                 {currentSession.averageTimeMs ? formatTime(currentSession.averageTimeMs) : '--'}
               </p>
-              <p className="text-sm text-gray-600">Average</p>
+              <p className="text-sm text-adaptive-secondary">Average</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">
+              <p className={cn('text-2xl font-bold', getAdaptiveClasses.semantic.success)}>
                 {currentSession.bestTimeMs ? formatTime(currentSession.bestTimeMs) : '--'}
               </p>
-              <p className="text-sm text-gray-600">Best</p>
+              <p className="text-sm text-adaptive-secondary">Best</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-adaptive-primary">
                 {getSessionDuration(currentSession.startedAt)}
               </p>
-              <p className="text-sm text-gray-600">Duration</p>
+              <p className="text-sm text-adaptive-secondary">Duration</p>
             </div>
           </div>
 
           <div className="flex space-x-4">
             <button 
               onClick={handleContinueSession}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors inline-flex items-center space-x-2"
+              className="px-4 py-2 bg-primary-600 text-on-primary rounded-lg hover:bg-primary-700 transition-colors inline-flex items-center space-x-2"
             >
               <Play className="w-4 h-4" />
               <span>Continue Session</span>
             </button>
             <button 
               onClick={() => handleViewSession(currentSession.id)}
-              className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors inline-flex items-center space-x-2"
+              className={cn('px-4 py-2 rounded-lg transition-colors inline-flex items-center space-x-2', getAdaptiveClasses.backgroundSemantic.info, 'text-on-primary', 'hover:bg-adaptive-tertiary hover:text-adaptive-primary')}
             >
               <Eye className="w-4 h-4" />
               <span>View Details</span>
             </button>
             <button 
               onClick={handleEndSession}
-              className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors inline-flex items-center space-x-2"
+              className={cn('px-4 py-2 rounded-lg transition-colors inline-flex items-center space-x-2', getAdaptiveClasses.backgroundSemantic.success, 'text-on-primary', 'hover:bg-adaptive-tertiary hover:text-adaptive-primary')}
             >
               <Plus className="w-4 h-4" />
               <span>New Session</span>
@@ -487,10 +518,10 @@ const SessionsPage: React.FC = () => {
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="text-center py-8">
-            <p className="text-gray-500 mb-4">No active session</p>
+            <p className="text-adaptive-tertiary mb-4">No active session</p>
             <button 
               onClick={handleNewSession}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              className="px-4 py-2 bg-primary-600 text-on-primary rounded-lg hover:bg-primary-700 transition-colors"
             >
               Start New Session
             </button>
@@ -500,7 +531,7 @@ const SessionsPage: React.FC = () => {
 
       {/* Recent Sessions */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Recent Sessions</h2>
+        <h2 className="text-xl font-semibold text-adaptive-primary mb-6">Recent Sessions</h2>
         
         {loadingHistory ? (
           <div className="space-y-4">
@@ -525,17 +556,17 @@ const SessionsPage: React.FC = () => {
               <div key={session.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="flex-1">
                   <div className="flex items-center space-x-4 mb-2">
-                    <h3 className="font-medium text-gray-900">{session.name || `Session ${index + 1}`}</h3>
-                    <span className={`px-2 py-1 text-xs font-medium rounded ${
-                      session.puzzleType === 'CUBE_3X3' ? 'bg-blue-100 text-blue-800' :
-                      session.puzzleType === 'CUBE_4X4' ? 'bg-green-100 text-green-800' :
-                      'bg-purple-100 text-purple-800'
-                    }`}>
+                    <h3 className="font-medium text-adaptive-primary">{session.name || `Session ${index + 1}`}</h3>
+                    <span className={cn('px-2 py-1 text-xs font-medium rounded',
+                      session.puzzleType === 'CUBE_3X3' ? cn(getAdaptiveClasses.backgroundSemantic.info, 'text-on-primary') :
+                      session.puzzleType === 'CUBE_4X4' ? cn(getAdaptiveClasses.backgroundSemantic.success, 'text-on-primary') :
+                      cn(getAdaptiveClasses.background.tertiary, getAdaptiveClasses.text.secondary)
+                    )}>
                       {session.puzzleType === 'CUBE_3X3' ? '3x3' : session.puzzleType === 'CUBE_4X4' ? '4x4' : session.puzzleType}
                     </span>
 
                   </div>
-                  <div className="flex items-center space-x-6 text-sm text-gray-600">
+                  <div className="flex items-center space-x-6 text-sm text-adaptive-secondary">
                     <span>{session.solveCount || 0} solves</span>
                     <span>Avg: {session.averageTimeMs ? formatTime(session.averageTimeMs) : '--'}</span>
                     <span>Best: {session.bestTimeMs ? formatTime(session.bestTimeMs) : '--'}</span>
@@ -543,7 +574,7 @@ const SessionsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-adaptive-tertiary">
                     {new Date(session.startedAt).toLocaleDateString() === new Date().toLocaleDateString() 
                       ? `Today, ${new Date(session.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                       : new Date(session.startedAt).toLocaleDateString() === new Date(Date.now() - 24*60*60*1000).toLocaleDateString()
@@ -561,7 +592,7 @@ const SessionsPage: React.FC = () => {
                     </button>
                     <button 
                       onClick={() => handleActivateSession(session.id)}
-                      className="text-green-600 hover:text-green-700 text-sm font-medium inline-flex items-center space-x-1"
+                      className={cn('text-sm font-medium inline-flex items-center space-x-1', getAdaptiveClasses.semantic.success, 'hover:opacity-80')}
                     >
                       <Play className="w-3 h-3" />
                       <span>Continue</span>
@@ -569,7 +600,7 @@ const SessionsPage: React.FC = () => {
                     {allSessions.length > 1 && (
                       <button 
                         onClick={() => handleDeleteSession(session.id, session.name)}
-                        className="text-red-600 hover:text-red-700 text-sm font-medium inline-flex items-center space-x-1"
+                        className={cn('text-sm font-medium inline-flex items-center space-x-1', getAdaptiveClasses.semantic.error, 'hover:opacity-80')}
                       >
                         <Trash2 className="w-3 h-3" />
                         <span>Delete</span>
@@ -582,7 +613,7 @@ const SessionsPage: React.FC = () => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-gray-500">No previous sessions</p>
+            <p className="text-adaptive-tertiary">No previous sessions</p>
           </div>
         )}
 
@@ -605,11 +636,11 @@ const SessionsPage: React.FC = () => {
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">{selectedSession.name}</h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <h2 className="text-2xl font-bold text-adaptive-primary">{selectedSession.name}</h2>
+                <p className="text-sm text-adaptive-secondary mt-1">
                   {selectedSession.puzzleType === 'CUBE_3X3' ? '3x3x3 Cube' : selectedSession.puzzleType}
                   {selectedSession.isActive && (
-                    <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                    <span className={cn('ml-2 px-2 py-1 text-xs font-medium rounded-full', getAdaptiveClasses.backgroundSemantic.success, 'text-on-primary')}>
                       Active
                     </span>
                   )}
@@ -617,7 +648,7 @@ const SessionsPage: React.FC = () => {
               </div>
               <button
                 onClick={closeSessionModal}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-adaptive-tertiary hover:text-adaptive-secondary transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -629,21 +660,21 @@ const SessionsPage: React.FC = () => {
             <div className="p-6">
               {/* Session Overview */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">{selectedSession.solveCount || 0}</p>
-                  <p className="text-sm text-blue-600 font-medium">Total Solves</p>
+                <div className={cn('text-center p-4 rounded-lg', getAdaptiveClasses.background.tertiary)}>
+                  <p className={cn('text-2xl font-bold', getAdaptiveClasses.semantic.info)}>{selectedSession.solveCount || 0}</p>
+                  <p className={cn('text-sm font-medium', getAdaptiveClasses.semantic.info)}>Total Solves</p>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">
+                <div className={cn('text-center p-4 rounded-lg', getAdaptiveClasses.background.tertiary)}>
+                  <p className={cn('text-2xl font-bold', getAdaptiveClasses.semantic.success)}>
                     {selectedSession.averageTimeMs ? formatTime(selectedSession.averageTimeMs) : '--'}
                   </p>
-                  <p className="text-sm text-green-600 font-medium">Average Time</p>
+                  <p className={cn('text-sm font-medium', getAdaptiveClasses.semantic.success)}>Average Time</p>
                 </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <p className="text-2xl font-bold text-purple-600">
+                <div className={cn('text-center p-4 rounded-lg', getAdaptiveClasses.background.tertiary)}>
+                  <p className={cn('text-2xl font-bold', getAdaptiveClasses.text.secondary)}>
                     {selectedSession.bestTimeMs ? formatTime(selectedSession.bestTimeMs) : '--'}
                   </p>
-                  <p className="text-sm text-purple-600 font-medium">Best Time</p>
+                  <p className={cn('text-sm font-medium', getAdaptiveClasses.text.secondary)}>Best Time</p>
                 </div>
                 <div className="text-center p-4 bg-orange-50 rounded-lg">
                   <p className="text-2xl font-bold text-orange-600">
@@ -656,25 +687,25 @@ const SessionsPage: React.FC = () => {
               {/* Session Metadata */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-gray-900">Session Information</h3>
+                  <h3 className="text-lg font-semibold text-adaptive-primary">Session Information</h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Started:</span>
+                      <span className="text-adaptive-secondary">Started:</span>
                       <span className="font-medium">
                         {new Date(selectedSession.startedAt).toLocaleString()}
                       </span>
                     </div>
                     {selectedSession.endedAt && (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Ended:</span>
+                        <span className="text-adaptive-secondary">Ended:</span>
                         <span className="font-medium">
                           {new Date(selectedSession.endedAt).toLocaleString()}
                         </span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Status:</span>
-                      <span className={`font-medium ${selectedSession.isActive ? 'text-green-600' : 'text-gray-600'}`}>
+                      <span className="text-adaptive-secondary">Status:</span>
+                      <span className={cn('font-medium', selectedSession.isActive ? getAdaptiveClasses.semantic.success : getAdaptiveClasses.text.secondary)}>
                         {selectedSession.isActive ? 'Active' : 'Completed'}
                       </span>
                     </div>
@@ -682,24 +713,24 @@ const SessionsPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-gray-900">Performance Analysis</h3>
+                  <h3 className="text-lg font-semibold text-adaptive-primary">Performance Analysis</h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Standard Deviation:</span>
+                      <span className="text-adaptive-secondary">Standard Deviation:</span>
                       <span className="font-medium">{calculateStandardDeviation()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Success Rate:</span>
+                      <span className="text-adaptive-secondary">Success Rate:</span>
                       <span className="font-medium">{calculateSuccessRate()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Sub-20 Count:</span>
+                      <span className="text-adaptive-secondary">Sub-20 Count:</span>
                       <span className="font-medium">
                         {loadingSessionSolves ? 'Loading...' : (
                           <>
                             {calculateSubXCount(20000)} / {sessionSolves.length}
                             {sessionSolves.length > 0 && (
-                              <span className="text-gray-500 ml-1">
+                              <span className="text-adaptive-tertiary ml-1">
                                 ({Math.round((calculateSubXCount(20000) / sessionSolves.length) * 100)}%)
                               </span>
                             )}
@@ -708,12 +739,12 @@ const SessionsPage: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Session Progress:</span>
-                      <span className={`font-medium ${
-                        calculateSessionImprovement().improved === true ? 'text-green-600' :
-                        calculateSessionImprovement().improved === false ? 'text-red-600' :
-                        'text-gray-600'
-                      }`}>
+                      <span className="text-adaptive-secondary">Session Progress:</span>
+                      <span className={cn('font-medium',
+                        calculateSessionImprovement().improved === true ? getAdaptiveClasses.semantic.success :
+                        calculateSessionImprovement().improved === false ? getAdaptiveClasses.semantic.error :
+                        getAdaptiveClasses.text.secondary
+                      )}>
                         {calculateSessionImprovement().text}
                       </span>
                     </div>
@@ -724,9 +755,9 @@ const SessionsPage: React.FC = () => {
               {/* Notes Section */}
               {selectedSession.notes && (
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Notes</h3>
+                  <h3 className="text-lg font-semibold text-adaptive-primary mb-2">Notes</h3>
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-gray-700">{selectedSession.notes}</p>
+                    <p className="text-adaptive-primary">{selectedSession.notes}</p>
                   </div>
                 </div>
               )}
@@ -740,7 +771,7 @@ const SessionsPage: React.FC = () => {
                         closeSessionModal();
                         navigate('/timer');
                       }}
-                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors inline-flex items-center space-x-2"
+                      className="px-4 py-2 bg-primary-600 text-on-primary rounded-lg hover:bg-primary-700 transition-colors inline-flex items-center space-x-2"
                     >
                       <Play className="w-4 h-4" />
                       <span>Continue Session</span>
@@ -750,7 +781,7 @@ const SessionsPage: React.FC = () => {
                         await handleEndSession();
                         closeSessionModal();
                       }}
-                      className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors inline-flex items-center space-x-2"
+                      className={cn('px-4 py-2 rounded-lg transition-colors inline-flex items-center space-x-2', getAdaptiveClasses.backgroundSemantic.success, 'text-on-primary', 'hover:bg-adaptive-tertiary hover:text-adaptive-primary')}
                     >
                       <Plus className="w-4 h-4" />
                       <span>New Session</span>
@@ -759,7 +790,7 @@ const SessionsPage: React.FC = () => {
                 ) : (
                                   <button
                   onClick={() => handleActivateSession(selectedSession.id)}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center space-x-2"
+                  className="px-4 py-2 bg-green-600 text-on-primary rounded-lg hover:bg-green-700 transition-colors inline-flex items-center space-x-2"
                 >
                   <Play className="w-4 h-4" />
                   <span>Reactivate Session</span>
@@ -768,7 +799,7 @@ const SessionsPage: React.FC = () => {
               {!selectedSession.isActive && allSessions.length > 1 && (
                 <button
                   onClick={() => handleDeleteSession(selectedSession.id, selectedSession.name)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors inline-flex items-center space-x-2"
+                  className="px-4 py-2 bg-red-600 text-on-primary rounded-lg hover:bg-red-700 transition-colors inline-flex items-center space-x-2"
                 >
                   <Trash2 className="w-4 h-4" />
                   <span>Delete Session</span>
@@ -776,7 +807,7 @@ const SessionsPage: React.FC = () => {
               )}
               <button
                 onClick={closeSessionModal}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 bg-gray-100 text-adaptive-primary rounded-lg hover:bg-gray-200 transition-colors"
               >
                 Close
               </button>

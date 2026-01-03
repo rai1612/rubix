@@ -7,6 +7,7 @@ import com.rubix.repository.ScrambleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -176,7 +177,8 @@ public class SolveService {
      */
     @Transactional(readOnly = true)
     public List<Solve> getRecentSolves(User user, int limit) {
-        return solveRepository.findRecentSolvesByUser(user.getId(), limit);
+        Pageable pageable = PageRequest.of(0, limit);
+        return solveRepository.findRecentSolvesByUser(user.getId(), pageable);
     }
 
     /**

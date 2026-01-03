@@ -13,6 +13,7 @@ interface UseTimerOptions {
   onSolveComplete?: (result: TimerResult, isUpdate?: boolean) => void;
   autoReset?: boolean;
   enableKeyboard?: boolean;
+  enableHoldToStart?: boolean;
 }
 
 interface UseTimerReturn {
@@ -21,6 +22,9 @@ interface UseTimerReturn {
   currentTime: number;
   inspectionTimeRemaining: number;
   lastResult: TimerResult | null;
+  
+  // Hold to start state
+  isHolding: boolean;
   
   // Controls
   start: () => void;
@@ -47,7 +51,8 @@ export const useTimer = (options: UseTimerOptions = {}): UseTimerReturn => {
     mode: initialMode = TimerMode.NORMAL,
     onSolveComplete,
     autoReset = false,
-    enableKeyboard = true
+    enableKeyboard = true,
+    enableHoldToStart = false
   } = options;
 
   // State
@@ -57,12 +62,24 @@ export const useTimer = (options: UseTimerOptions = {}): UseTimerReturn => {
   const [lastResult, setLastResult] = useState<TimerResult | null>(null);
   const [inspectionTime, setInspectionTimeState] = useState(initialInspectionTime);
   const [mode, setModeState] = useState(initialMode);
+  const [isHolding, setIsHolding] = useState(false);
+
+  // Sync settings when options change
+  useEffect(() => {
+    setInspectionTimeState(initialInspectionTime);
+  }, [initialInspectionTime]);
+
+  useEffect(() => {
+    setModeState(initialMode);
+  }, [initialMode]);
 
   // Refs for precise timing
   const startTimeRef = useRef<number>(0);
   const inspectionStartTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number>(0);
   const keyDownRef = useRef<boolean>(false);
+  const holdStartTimeRef = useRef<number>(0);
+  const holdTimeoutRef = useRef<number | null>(null);
 
   // Animation loop for updating display
   const updateDisplay = useCallback(() => {
@@ -213,24 +230,39 @@ export const useTimer = (options: UseTimerOptions = {}): UseTimerReturn => {
     setModeState(newMode);
   }, []);
 
+  // No need for progress animation anymore - we use simple hold/release mechanism
+
   // Keyboard controls
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (!enableKeyboard || event.repeat) return;
+    if (!enableKeyboard) return;
 
     switch (event.code) {
       case 'Space':
+        // Prevent default immediately and stop propagation
         event.preventDefault();
+        event.stopPropagation();
+        
+        if (event.repeat) return;
+        
         if (!keyDownRef.current) {
           keyDownRef.current = true;
+          holdStartTimeRef.current = performance.now();
           
-          if (state === TimerState.READY) {
-            start();
-          } else if (state === TimerState.INSPECTION) {
-            skipInspection();
-          } else if (state === TimerState.SOLVING) {
-            stop();
-          } else if (state === TimerState.FINISHED) {
-            reset();
+          // For timer start actions (READY state), use hold-to-ready if enabled and in NO_INSPECTION mode
+          if (state === TimerState.READY && enableHoldToStart && mode === TimerMode.NO_INSPECTION) {
+            setIsHolding(true);
+            // Timer will start on key release
+          } else {
+            // For all other states, trigger immediately or if hold-to-start is disabled/not applicable
+            if (state === TimerState.READY) {
+              start();
+            } else if (state === TimerState.INSPECTION) {
+              skipInspection();
+            } else if (state === TimerState.SOLVING) {
+              stop();
+            } else if (state === TimerState.FINISHED) {
+              reset();
+            }
           }
         }
         break;
@@ -258,23 +290,50 @@ export const useTimer = (options: UseTimerOptions = {}): UseTimerReturn => {
         }
         break;
     }
-  }, [enableKeyboard, state, start, skipInspection, stop, reset, addPenalty, removePenalty, lastResult]);
+  }, [enableKeyboard, state, start, skipInspection, stop, reset, addPenalty, removePenalty, lastResult, enableHoldToStart, mode]);
 
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
     if (event.code === 'Space') {
+      // Prevent default and stop propagation on keyup as well
+      event.preventDefault();
+      event.stopPropagation();
+      
       keyDownRef.current = false;
+      
+      // If we were holding in READY state with hold-to-start enabled, start the timer now
+      if (isHolding && state === TimerState.READY && enableHoldToStart && mode === TimerMode.NO_INSPECTION) {
+        console.log('Spacebar released, starting timer...');
+        setIsHolding(false);
+        start();
+      } else if (isHolding) {
+        // For other cases, just reset holding state
+        setIsHolding(false);
+      }
+      
+      // Clear any pending hold timeout (though we shouldn't have any now)
+      if (holdTimeoutRef.current) {
+        clearTimeout(holdTimeoutRef.current);
+        holdTimeoutRef.current = null;
+      }
     }
-  }, []);
+  }, [isHolding, state, enableHoldToStart, mode, start]);
 
   // Set up keyboard listeners
   useEffect(() => {
     if (enableKeyboard) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.addEventListener('keyup', handleKeyUp);
+      // Use capture phase to ensure we catch the event early
+      document.addEventListener('keydown', handleKeyDown, { capture: true });
+      document.addEventListener('keyup', handleKeyUp, { capture: true });
 
       return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-        document.removeEventListener('keyup', handleKeyUp);
+        document.removeEventListener('keydown', handleKeyDown, { capture: true });
+        document.removeEventListener('keyup', handleKeyUp, { capture: true });
+        
+        // Clean up any pending hold timeout
+        if (holdTimeoutRef.current) {
+          clearTimeout(holdTimeoutRef.current);
+          holdTimeoutRef.current = null;
+        }
       };
     }
   }, [enableKeyboard, handleKeyDown, handleKeyUp]);
@@ -290,6 +349,9 @@ export const useTimer = (options: UseTimerOptions = {}): UseTimerReturn => {
     currentTime,
     inspectionTimeRemaining,
     lastResult,
+    
+    // Hold to start state
+    isHolding,
     
     // Controls
     start,

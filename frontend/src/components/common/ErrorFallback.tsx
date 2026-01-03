@@ -12,21 +12,21 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetErrorBoundary
       <div className="max-w-md w-full">
         <div className="bg-white rounded-lg shadow-lg p-6 text-center">
           <div className="flex justify-center mb-4">
-            <AlertTriangle className="w-16 h-16 text-red-500" />
+            <AlertTriangle className="w-16 h-16 text-error" />
           </div>
           
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-adaptive-primary mb-2">
             Oops! Something went wrong
           </h1>
           
-          <p className="text-gray-600 mb-6">
+          <p className="text-adaptive-secondary mb-6">
             We're sorry, but something unexpected happened. Please try refreshing the page.
           </p>
           
           <div className="space-y-4">
             <button
               onClick={resetErrorBoundary}
-              className="w-full flex items-center justify-center space-x-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="w-full flex items-center justify-center space-x-2 bg-primary-600 hover:bg-primary-700 text-on-primary px-4 py-2 rounded-lg transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               <span>Try again</span>
@@ -34,7 +34,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetErrorBoundary
             
             <button
               onClick={() => window.location.href = '/'}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg transition-colors"
+              className="w-full bg-gray-100 hover:bg-gray-200 text-adaptive-primary px-4 py-2 rounded-lg transition-colors"
             >
               Go to homepage
             </button>
@@ -42,10 +42,10 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetErrorBoundary
           
           {import.meta.env.DEV && (
             <details className="mt-6 text-left">
-              <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+              <summary className="cursor-pointer text-sm text-adaptive-tertiary hover:text-adaptive-primary">
                 Error details (development)
               </summary>
-              <pre className="mt-2 text-xs text-red-600 bg-red-50 p-3 rounded overflow-auto">
+              <pre className="mt-2 text-xs text-error bg-error p-3 rounded overflow-auto">
                 {error.message}
                 {error.stack && '\n\n' + error.stack}
               </pre>

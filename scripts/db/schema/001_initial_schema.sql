@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS algorithms (
     tags VARCHAR(255)[],
     trigger_pattern VARCHAR(255), -- For recognition training
     setup_moves VARCHAR(500), -- Moves to set up the case
+    image_url VARCHAR(500), -- URL to case visualization image
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     usage_count INTEGER DEFAULT 0 -- How many times user has practiced this
@@ -187,6 +188,7 @@ CREATE INDEX IF NOT EXISTS idx_algorithms_user_id ON algorithms(user_id);
 CREATE INDEX IF NOT EXISTS idx_algorithms_set ON algorithms(algorithm_set);
 CREATE INDEX IF NOT EXISTS idx_algorithms_public ON algorithms(is_public) WHERE is_public = true;
 CREATE INDEX IF NOT EXISTS idx_algorithms_favorite ON algorithms(user_id, is_favorite) WHERE is_favorite = true;
+CREATE INDEX IF NOT EXISTS idx_algorithms_image_url ON algorithms(image_url) WHERE image_url IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_user_statistics_user_puzzle ON user_statistics(user_id, puzzle_type);
 
@@ -220,7 +222,8 @@ BEGIN
 END;
 ' LANGUAGE plpgsql;
 
--- Trigger for session stats updates
+-- Trigger for session stats updates (drop first to avoid duplicates)
+DROP TRIGGER IF EXISTS trigger_update_session_stats ON solves;
 CREATE TRIGGER trigger_update_session_stats
     AFTER INSERT OR UPDATE OR DELETE ON solves
     FOR EACH ROW EXECUTE FUNCTION update_session_stats();
@@ -234,9 +237,12 @@ BEGIN
 END; 
 ' LANGUAGE plpgsql;
 
--- Triggers for updated_at columns
+-- Triggers for updated_at columns (drop first to avoid duplicates)
+DROP TRIGGER IF EXISTS trigger_users_updated_at ON users;
 CREATE TRIGGER trigger_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS trigger_algorithms_updated_at ON algorithms;
 CREATE TRIGGER trigger_algorithms_updated_at BEFORE UPDATE ON algorithms
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+

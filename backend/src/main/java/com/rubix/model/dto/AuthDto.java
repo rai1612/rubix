@@ -234,6 +234,12 @@ public class AuthDto {
         private String email;
         private String firstName;
         private String lastName;
+        private String createdAt;
+        private String updatedAt;
+        private String lastLoginAt;
+        private Boolean isActive;
+        private Boolean isVerified;
+        private java.util.Map<String, Object> preferences;
 
         // Constructors
         public UserInfo() {}
@@ -244,6 +250,38 @@ public class AuthDto {
             this.email = email;
             this.firstName = firstName;
             this.lastName = lastName;
+        }
+
+        // Full constructor
+        public UserInfo(String id, String username, String email, String firstName, String lastName, 
+                       String createdAt, String updatedAt, String lastLoginAt, Boolean isActive, Boolean isVerified) {
+            this.id = id;
+            this.username = username;
+            this.email = email;
+            this.firstName = firstName;
+            this.lastName = lastName;
+            this.createdAt = createdAt;
+            this.updatedAt = updatedAt;
+            this.lastLoginAt = lastLoginAt;
+            this.isActive = isActive;
+            this.isVerified = isVerified;
+        }
+
+        // Constructor with preferences
+        public UserInfo(String id, String username, String email, String firstName, String lastName, 
+                       String createdAt, String updatedAt, String lastLoginAt, Boolean isActive, Boolean isVerified,
+                       java.util.Map<String, Object> preferences) {
+            this.id = id;
+            this.username = username;
+            this.email = email;
+            this.firstName = firstName;
+            this.lastName = lastName;
+            this.createdAt = createdAt;
+            this.updatedAt = updatedAt;
+            this.lastLoginAt = lastLoginAt;
+            this.isActive = isActive;
+            this.isVerified = isVerified;
+            this.preferences = preferences;
         }
 
         // Getters and Setters
@@ -285,6 +323,99 @@ public class AuthDto {
 
         public void setLastName(String lastName) {
             this.lastName = lastName;
+        }
+
+        public String getCreatedAt() {
+            return createdAt;
+        }
+
+        public void setCreatedAt(String createdAt) {
+            this.createdAt = createdAt;
+        }
+
+        public String getUpdatedAt() {
+            return updatedAt;
+        }
+
+        public void setUpdatedAt(String updatedAt) {
+            this.updatedAt = updatedAt;
+        }
+
+        public String getLastLoginAt() {
+            return lastLoginAt;
+        }
+
+        public void setLastLoginAt(String lastLoginAt) {
+            this.lastLoginAt = lastLoginAt;
+        }
+
+        public Boolean getIsActive() {
+            return isActive;
+        }
+
+        public void setIsActive(Boolean isActive) {
+            this.isActive = isActive;
+        }
+
+        public Boolean getIsVerified() {
+            return isVerified;
+        }
+
+        public void setIsVerified(Boolean isVerified) {
+            this.isVerified = isVerified;
+        }
+
+        public java.util.Map<String, Object> getPreferences() {
+            return preferences;
+        }
+
+        public void setPreferences(java.util.Map<String, Object> preferences) {
+            this.preferences = preferences;
+        }
+    }
+
+    public static class UpdateProfileRequest {
+        private String firstName;
+        private String lastName;
+        private java.util.Map<String, Object> preferences;
+
+        // Constructors
+        public UpdateProfileRequest() {}
+
+        public UpdateProfileRequest(String firstName, String lastName) {
+            this.firstName = firstName;
+            this.lastName = lastName;
+        }
+
+        public UpdateProfileRequest(String firstName, String lastName, java.util.Map<String, Object> preferences) {
+            this.firstName = firstName;
+            this.lastName = lastName;
+            this.preferences = preferences;
+        }
+
+        // Getters and Setters
+        public String getFirstName() {
+            return firstName;
+        }
+
+        public void setFirstName(String firstName) {
+            this.firstName = firstName;
+        }
+
+        public String getLastName() {
+            return lastName;
+        }
+
+        public void setLastName(String lastName) {
+            this.lastName = lastName;
+        }
+
+        public java.util.Map<String, Object> getPreferences() {
+            return preferences;
+        }
+
+        public void setPreferences(java.util.Map<String, Object> preferences) {
+            this.preferences = preferences;
         }
     }
 }

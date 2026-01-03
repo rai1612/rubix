@@ -146,10 +146,62 @@ public class AuthController {
                     user.getUsername(),
                     user.getEmail(),
                     user.getFirstName(),
-                    user.getLastName()
+                    user.getLastName(),
+                    user.getCreatedAt() != null ? user.getCreatedAt().toString() : null,
+                    user.getUpdatedAt() != null ? user.getUpdatedAt().toString() : null,
+                    user.getLastLoginAt() != null ? user.getLastLoginAt().toString() : null,
+                    user.getIsActive(),
+                    user.getIsVerified(),
+                    user.getPreferences()
             ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
+
+    /**
+     * Update user profile
+     */
+    @PutMapping("/profile")
+    public ResponseEntity<AuthDto.UserInfo> updateProfile(
+            @Valid @RequestBody AuthDto.UpdateProfileRequest request,
+            Authentication authentication) {
+        logger.info("Profile update request for user: {}", authentication.getName());
+
+        try {
+            User user = userService.getCurrentUser(authentication);
+            
+            // Update fields if provided
+            if (request.getFirstName() != null) {
+                user.setFirstName(request.getFirstName());
+            }
+            if (request.getLastName() != null) {
+                user.setLastName(request.getLastName());
+            }
+            if (request.getPreferences() != null) {
+                user.setPreferences(request.getPreferences());
+            }
+
+            User updatedUser = userService.updateUser(user);
+            logger.info("Successfully updated profile for user: {}", updatedUser.getUsername());
+
+            return ResponseEntity.ok(new AuthDto.UserInfo(
+                    updatedUser.getId().toString(),
+                    updatedUser.getUsername(),
+                    updatedUser.getEmail(),
+                    updatedUser.getFirstName(),
+                    updatedUser.getLastName(),
+                    updatedUser.getCreatedAt() != null ? updatedUser.getCreatedAt().toString() : null,
+                    updatedUser.getUpdatedAt() != null ? updatedUser.getUpdatedAt().toString() : null,
+                    updatedUser.getLastLoginAt() != null ? updatedUser.getLastLoginAt().toString() : null,
+                    updatedUser.getIsActive(),
+                    updatedUser.getIsVerified(),
+                    updatedUser.getPreferences()
+            ));
+
+        } catch (Exception e) {
+            logger.error("Error updating profile for user: {}", authentication.getName(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

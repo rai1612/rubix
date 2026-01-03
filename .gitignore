@@ -172,3 +172,11 @@ Thumbs.db
 *.pfx
 keystore
 truststore
+
+# Project-specific ignores
+archive/
+.dev-rules.md
+frontend/dist/
+scripts/archive/
+scripts/migrations/
+docs/

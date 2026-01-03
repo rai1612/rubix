@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Play, Square, RotateCcw } from 'lucide-react';
 import { formatTime, TimerState, TimerMode } from '../../utils/timerUtils';
+import { getTimerStateClass, buttonVariants, cn } from '../../utils/appearanceUtils';
 
 interface TimerProps {
   inspectionTime?: number; // seconds
@@ -136,7 +137,11 @@ export const Timer: React.FC<TimerProps> = ({
     
     // Only handle spacebar for timer control
     if (event.code === 'Space') {
+      // Prevent default immediately and stop propagation
       event.preventDefault();
+      event.stopPropagation();
+      
+      if (event.repeat) return;
       
       if (!isKeyDownRef.current) {
         isKeyDownRef.current = true;
@@ -166,18 +171,23 @@ export const Timer: React.FC<TimerProps> = ({
 
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
     if (event.code === 'Space') {
+      // Prevent default and stop propagation on keyup as well
+      event.preventDefault();
+      event.stopPropagation();
+      
       isKeyDownRef.current = false;
     }
   }, []);
 
   // Set up keyboard listeners
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
+    // Use capture phase to ensure we catch the event early
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    document.addEventListener('keyup', handleKeyUp, { capture: true });
     
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('keyup', handleKeyUp);
+      document.removeEventListener('keydown', handleKeyDown, { capture: true });
+      document.removeEventListener('keyup', handleKeyUp, { capture: true });
     };
   }, [handleKeyDown, handleKeyUp]);
 
@@ -217,15 +227,15 @@ export const Timer: React.FC<TimerProps> = ({
   const getTimerColor = () => {
     if (timerState === TimerState.INSPECTION) {
       const remaining = currentInspectionTime / 1000;
-      if (remaining <= 3) return 'text-red-500';
-      if (remaining <= 8) return 'text-yellow-500';
-      return 'text-blue-500';
+      if (remaining <= 3) return getTimerStateClass('inspection-danger');
+      if (remaining <= 8) return getTimerStateClass('inspection-warning');
+      return getTimerStateClass('inspection');
     } else if (timerState === TimerState.SOLVING) {
-      return 'text-green-500';
+      return getTimerStateClass('solving');
     } else if (timerState === TimerState.FINISHED) {
-      return 'text-gray-900';
+      return getTimerStateClass('finished');
     }
-    return 'text-gray-600';
+    return getTimerStateClass('ready');
   };
 
   const getInstructions = () => {
@@ -263,12 +273,13 @@ export const Timer: React.FC<TimerProps> = ({
       {/* Inspection Time Indicator */}
       {timerState === TimerState.INSPECTION && (
         <div className="mb-6">
-          <div className="w-64 bg-gray-200 rounded-full h-2">
+          <div className="w-64 bg-adaptive-tertiary rounded-full h-2">
             <div
-              className={`h-2 rounded-full transition-all duration-100 ${
+              className={cn(
+                'h-2 rounded-full transition-all duration-100',
                 currentInspectionTime / 1000 <= 3 ? 'bg-red-500' :
                 currentInspectionTime / 1000 <= 8 ? 'bg-yellow-500' : 'bg-blue-500'
-              }`}
+              )}
               style={{
                 width: `${(currentInspectionTime / (inspectionTime * 1000)) * 100}%`
               }}
@@ -278,7 +289,7 @@ export const Timer: React.FC<TimerProps> = ({
       )}
 
       {/* Instructions */}
-      <p className="text-gray-600 text-center mb-8 max-w-md">
+      <p className="text-adaptive-secondary text-center mb-8 max-w-md">
         {getInstructions()}
       </p>
 
@@ -288,9 +299,9 @@ export const Timer: React.FC<TimerProps> = ({
           <button
             onClick={mode === TimerMode.NO_INSPECTION ? startSolving : startInspection}
             disabled={disabled}
-            className="flex items-center space-x-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg transition-colors"
+            className={cn(buttonVariants.primary, 'px-6 py-3')}
           >
-            <Play className="w-5 h-5" />
+            <Play className="w-5 h-5 mr-2" />
             <span>{mode === TimerMode.NO_INSPECTION ? 'Start' : 'Inspect'}</span>
           </button>
         )}
@@ -299,9 +310,9 @@ export const Timer: React.FC<TimerProps> = ({
           <button
             onClick={stopTimer}
             disabled={disabled}
-            className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg transition-colors"
+            className={cn(buttonVariants.danger, 'px-6 py-3')}
           >
-            <Square className="w-5 h-5" />
+            <Square className="w-5 h-5 mr-2" />
             <span>Stop</span>
           </button>
         )}
@@ -309,17 +320,17 @@ export const Timer: React.FC<TimerProps> = ({
         <button
           onClick={resetTimer}
           disabled={disabled}
-          className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg transition-colors"
+          className={cn(buttonVariants.secondary, 'px-6 py-3')}
         >
-          <RotateCcw className="w-5 h-5" />
+          <RotateCcw className="w-5 h-5 mr-2" />
           <span>Reset</span>
         </button>
       </div>
 
       {/* Keyboard Shortcuts */}
-      <div className="mt-8 text-sm text-gray-500 text-center">
-        <p>Keyboard: <kbd className="px-2 py-1 bg-gray-100 rounded">SPACE</kbd> to control timer</p>
-        <p><kbd className="px-2 py-1 bg-gray-100 rounded">R</kbd> to reset</p>
+      <div className="mt-8 text-sm text-adaptive-tertiary text-center">
+        <p>Keyboard: <kbd className="px-2 py-1 bg-adaptive-tertiary border border-adaptive-primary rounded">SPACE</kbd> to control timer</p>
+        <p><kbd className="px-2 py-1 bg-adaptive-tertiary border border-adaptive-primary rounded">R</kbd> to reset</p>
       </div>
     </div>
   );

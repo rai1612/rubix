@@ -225,4 +225,6 @@ api.interceptors.response.use(
 // Initialize on module load
 AuthService.init();
 
+// Export singleton instance
+export const authService = new AuthService();
 export default AuthService;

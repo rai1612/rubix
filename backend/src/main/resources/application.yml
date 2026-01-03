@@ -27,17 +27,6 @@ spring:
       # Disabled auto-loading for production scalability
       # Use scripts/manage-algorithms.sh for data management
   
-  redis:
-    host: ${SPRING_REDIS_HOST:redis}
-    port: ${SPRING_REDIS_PORT:6379}
-    password: ${SPRING_REDIS_PASSWORD:}
-    timeout: 2000ms
-    jedis:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
-  
   security:
     oauth2:
       client:
@@ -99,10 +88,6 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:rubix}
     password: ${SPRING_DATASOURCE_PASSWORD}
   
-  redis:
-    host: localhost
-    port: 6379
-  
   jpa:
     hibernate:
       ddl-auto: update
@@ -123,9 +108,6 @@ spring:
   
   datasource:
     url: jdbc:postgresql://postgres:5432/rubix
-  
-  redis:
-    host: redis
 
 ---
 spring:

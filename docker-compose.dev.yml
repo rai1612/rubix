@@ -1,8 +1,11 @@
+# Development configuration for docker-compose
+# Usage: docker-compose -f docker-compose.dev.yml up -d
+
 services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: rubix-postgres
+    container_name: rubix-postgres-dev
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-rubix}
       POSTGRES_USER: ${POSTGRES_USER:-rubix}
@@ -10,7 +13,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_dev_data:/var/lib/postgresql/data
       # All database files from scripts/db/ (single source of truth)
       - ./scripts/db/schema/001_initial_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
       - ./scripts/db/seeds/users/demo_users.sql:/docker-entrypoint-initdb.d/02-users.sql
@@ -19,45 +22,62 @@ services:
       - ./scripts/db/seeds/algorithms/f2l_algorithms.sql:/docker-entrypoint-initdb.d/05-f2l.sql
       - ./scripts/db/seeds/algorithms/advanced_sets.sql:/docker-entrypoint-initdb.d/06-advanced.sql
     networks:
-      - rubix-network
+      - rubix-dev-network
 
-  # Backend Application
+  # Backend Application (Development)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: rubix-backend
+    container_name: rubix-backend-dev
     ports:
       - "8080:8080"
+      - "35729:35729"  # LiveReload port
+    volumes:
+      # Mount source code for hot reloading in development
+      - ./backend/src:/app/src:ro
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/rubix}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-rubix}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      SPRING_DEVTOOLS_RESTART_ENABLED: ${SPRING_DEVTOOLS_RESTART_ENABLED:-true}
+      SPRING_DEVTOOLS_LIVERELOAD_ENABLED: ${SPRING_DEVTOOLS_LIVERELOAD_ENABLED:-true}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
     depends_on:
       - postgres
     networks:
-      - rubix-network
+      - rubix-dev-network
 
-  # Frontend Application (for production)
+  # Frontend Application (Development with hot reload)
   frontend:
     platform: linux/amd64
     build:
       context: ./frontend
-      dockerfile: Dockerfile
-    container_name: rubix-frontend
+      dockerfile: Dockerfile.dev
+    container_name: rubix-frontend-dev
     ports:
-      - "3000:80"
+      - "5173:5173"  # Vite dev server
+    volumes:
+      # Mount source code for hot reloading
+      - ./frontend/src:/app/src:ro
+      - ./frontend/public:/app/public:ro
+      - ./frontend/package.json:/app/package.json:ro
+      - ./frontend/vite.config.ts:/app/vite.config.ts:ro
+      - ./frontend/tsconfig.json:/app/tsconfig.json:ro
+      - ./frontend/tailwind.config.js:/app/tailwind.config.js:ro
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8080/api}
     depends_on:
       - backend
     networks:
-      - rubix-network
+      - rubix-dev-network
 
 volumes:
-  postgres_data:
+  postgres_dev_data:
 
 networks:
-  rubix-network:
+  rubix-dev-network:
     driver: bridge

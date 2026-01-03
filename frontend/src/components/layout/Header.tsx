@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Timer, User, Settings, Bell, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, X, Timer, User, Settings, LogOut, ChevronDown, BarChart3, BookOpen, Calendar, Box } from 'lucide-react';
 import { AuthService } from '../../services/authService';
+import { cn, getAdaptiveClasses } from '../../utils/appearanceUtils';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -90,15 +91,22 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 h-16 fixed top-0 left-0 right-0 z-50">
+    <header className={cn(
+      getAdaptiveClasses.background.secondary,
+      'shadow-sm border-b border-adaptive-primary h-16 fixed top-0 left-0 right-0 z-50'
+    )}>
       <div className="flex items-center justify-between h-full px-4">
         {/* Left section */}
         <div className="flex items-center space-x-4">
-          {/* Mobile menu button */}
+          {/* Menu toggle button - now available on all screen sizes */}
           <button
             onClick={onMenuClick}
-            className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-            aria-label="Toggle menu"
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              getAdaptiveClasses.text.secondary,
+              'hover:bg-adaptive-tertiary'
+            )}
+            aria-label="Toggle sidebar"
           >
             {sidebarOpen ? (
               <X className="w-5 h-5" />
@@ -110,92 +118,155 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <Timer className="w-5 h-5 text-white" />
+              <Timer className="w-5 h-5 text-on-primary" />
             </div>
-            <span className="text-xl font-bold text-gray-900 hidden sm:block">
+            <span className={cn(
+              'text-xl font-bold hidden sm:block',
+              getAdaptiveClasses.text.primary
+            )}>
               rubiX
             </span>
           </Link>
 
           {/* Page title (desktop) */}
-          <div className="hidden md:block text-gray-400">
+          <div className={cn('hidden md:block', getAdaptiveClasses.text.tertiary)}>
             <span className="text-2xl">/</span>
-            <span className="ml-2 text-lg font-medium text-gray-700">
+            <span className={cn(
+              'ml-2 text-lg font-medium',
+              getAdaptiveClasses.text.secondary
+            )}>
               {getPageTitle(location.pathname)}
             </span>
           </div>
         </div>
 
-        {/* Center section - Search (future) */}
-        <div className="flex-1 max-w-lg mx-4 hidden lg:block">
-          {/* Search bar placeholder */}
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search algorithms, sessions..."
-              className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              disabled
-            />
-          </div>
-        </div>
 
         {/* Right section */}
         <div className="flex items-center space-x-2">
-          {/* Notifications */}
-          <button
-            className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors relative"
-            title="Notifications"
-          >
-            <Bell className="w-5 h-5" />
-            {/* Notification badge */}
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
+          {/* Page shortcuts - visible on all screens */}
+          <div className="flex items-center space-x-1 mr-2">
 
-          {/* Settings */}
-          <Link
-            to="/settings"
-            className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-            title="Settings"
-          >
-            <Settings className="w-5 h-5" />
-          </Link>
+            {/* Timer */}
+            <Link
+              to="/timer"
+              className={cn(
+                'p-2 rounded-lg transition-colors',
+                location.pathname === '/timer' 
+                  ? 'bg-primary-100 text-primary-600' 
+                  : cn(getAdaptiveClasses.text.secondary, 'hover:bg-adaptive-tertiary'),
+              )}
+              title="Timer"
+            >
+              <Timer className="w-5 h-5" />
+            </Link>
 
-          {/* Profile */}
-          <Link
-            to="/profile"
-            className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-            title="Profile"
-          >
-            <User className="w-5 h-5" />
-          </Link>
+            {/* Statistics */}
+            <Link
+              to="/statistics"
+              className={cn(
+                'p-2 rounded-lg transition-colors',
+                location.pathname === '/statistics' 
+                  ? 'bg-primary-100 text-primary-600' 
+                  : cn(getAdaptiveClasses.text.secondary, 'hover:bg-adaptive-tertiary'),
+              )}
+              title="Statistics"
+            >
+              <BarChart3 className="w-5 h-5" />
+            </Link>
+
+            {/* Algorithms */}
+            <Link
+              to="/algorithms"
+              className={cn(
+                'p-2 rounded-lg transition-colors',
+                location.pathname.startsWith('/algorithms') 
+                  ? 'bg-primary-100 text-primary-600' 
+                  : cn(getAdaptiveClasses.text.secondary, 'hover:bg-adaptive-tertiary'),
+              )}
+              title="Algorithms"
+            >
+              <BookOpen className="w-5 h-5" />
+            </Link>
+
+            {/* Sessions */}
+            <Link
+              to="/sessions"
+              className={cn(
+                'p-2 rounded-lg transition-colors',
+                location.pathname === '/sessions' 
+                  ? 'bg-primary-100 text-primary-600' 
+                  : cn(getAdaptiveClasses.text.secondary, 'hover:bg-adaptive-tertiary'),
+              )}
+              title="Sessions"
+            >
+              <Calendar className="w-5 h-5" />
+            </Link>
+
+            {/* Visualizer */}
+            <Link
+              to="/visualizer"
+              className={cn(
+                'p-2 rounded-lg transition-colors',
+                location.pathname === '/visualizer' 
+                  ? 'bg-primary-100 text-primary-600' 
+                  : cn(getAdaptiveClasses.text.secondary, 'hover:bg-adaptive-tertiary'),
+              )}
+              title="Visualizer"
+            >
+              <Box className="w-5 h-5" />
+            </Link>
+          </div>
+
+          {/* Divider */}
+          <div className={cn('w-px h-6 mx-2', getAdaptiveClasses.border.primary)}></div>
+
+
 
           {/* User avatar with dropdown */}
-          <div className="hidden sm:block relative" data-dropdown-container>
+          <div className="relative" data-dropdown-container>
             <button 
               onClick={(e) => {
                 e.stopPropagation();
                 setUserDropdownOpen(!userDropdownOpen);
               }}
-              className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className={cn(
+                'flex items-center space-x-2 p-2 rounded-lg transition-colors',
+                'hover:bg-adaptive-tertiary'
+              )}
             >
               <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-primary-800">
+                <span className="text-sm font-medium text-on-primary-light">
                   {getUserInitials(currentUser)}
                 </span>
               </div>
-              <span className="text-sm font-medium text-gray-700 hidden lg:block">
+              <span className={cn(
+                'text-sm font-medium hidden lg:block',
+                getAdaptiveClasses.text.secondary
+              )}>
                 {getUserDisplayName(currentUser)}
               </span>
-              <ChevronDown className="w-4 h-4 text-gray-500 hidden lg:block" />
+              <ChevronDown className={cn(
+                'w-4 h-4 hidden lg:block',
+                getAdaptiveClasses.text.tertiary
+              )} />
             </button>
 
             {/* Dropdown menu */}
             {userDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+              <div className={cn(
+                'absolute right-0 mt-2 w-48 rounded-lg shadow-lg py-1 z-50',
+                getAdaptiveClasses.background.secondary,
+                getAdaptiveClasses.border.primary,
+                'border'
+              )}>
                 <Link
                   to="/profile"
                   onClick={() => setUserDropdownOpen(false)}
-                  className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  className={cn(
+                    'flex items-center space-x-3 px-4 py-2 text-sm transition-colors',
+                    getAdaptiveClasses.text.secondary,
+                    'hover:bg-adaptive-tertiary'
+                  )}
                 >
                   <User className="w-4 h-4" />
                   <span>Profile</span>
@@ -203,15 +274,22 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, sidebarOpen }) => {
                 <Link
                   to="/settings"
                   onClick={() => setUserDropdownOpen(false)}
-                  className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  className={cn(
+                    'flex items-center space-x-3 px-4 py-2 text-sm transition-colors',
+                    getAdaptiveClasses.text.secondary,
+                    'hover:bg-adaptive-tertiary'
+                  )}
                 >
                   <Settings className="w-4 h-4" />
                   <span>Settings</span>
                 </Link>
-                <div className="border-t border-gray-100 my-1"></div>
+                <div className="border-t border-adaptive-primary my-1"></div>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left"
+                  className={cn(
+                    'flex items-center space-x-3 px-4 py-2 text-sm w-full text-left transition-colors',
+                    'text-error hover:bg-adaptive-tertiary'
+                  )}
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Logout</span>

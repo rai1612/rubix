@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus, X, RotateCcw, Settings } from 'lucide-react';
 import { TimerResult, PenaltyType, formatTimeWithPenalty } from '../../utils/timerUtils';
+import { cn, getAdaptiveClasses, buttonVariants } from '../../utils/appearanceUtils';
 
 interface TimerControlsProps {
   lastResult: TimerResult | null;
@@ -9,6 +10,7 @@ interface TimerControlsProps {
   onReset: () => void;
   onOpenSettings?: () => void;
   disabled?: boolean;
+  precision?: number;
   className?: string;
 }
 
@@ -19,6 +21,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
   onReset,
   onOpenSettings,
   disabled = false,
+  precision = 2,
   className = ''
 }) => {
   const hasPenalty = lastResult?.penalty !== PenaltyType.NONE;
@@ -30,11 +33,11 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
       {/* Last Result Display */}
       {lastResult && (
         <div className="text-center">
-          <div className="text-2xl font-mono font-bold text-gray-900 mb-2">
-            {formatTimeWithPenalty(lastResult)}
+          <div className="text-2xl font-mono font-bold text-adaptive-primary mb-2">
+            {formatTimeWithPenalty(lastResult, precision)}
           </div>
           {lastResult.inspectionTime > 0 && (
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-adaptive-tertiary">
               Inspection: {(lastResult.inspectionTime / 1000).toFixed(1)}s
             </div>
           )}
@@ -51,7 +54,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
               flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors
               ${isPlusTwo 
                 ? 'bg-orange-100 text-orange-800 border border-orange-200' 
-                : 'bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-orange-800 border border-gray-200'
+                : cn(getAdaptiveClasses.background.tertiary, 'hover:' + getAdaptiveClasses.backgroundSemantic.warning.replace('bg-', ''), getAdaptiveClasses.text.primary, 'hover:' + getAdaptiveClasses.semantic.warning.replace('text-', ''), getAdaptiveClasses.border.primary)
               }
               disabled:opacity-50 disabled:cursor-not-allowed
             `}
@@ -67,8 +70,8 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
             className={`
               flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors
               ${isDNF 
-                ? 'bg-red-100 text-red-800 border border-red-200' 
-                : 'bg-gray-100 hover:bg-red-100 text-gray-700 hover:text-red-800 border border-gray-200'
+                ? cn(getAdaptiveClasses.backgroundSemantic.error, 'text-on-primary', 'border border-error')
+                : cn(getAdaptiveClasses.background.tertiary, 'hover:' + getAdaptiveClasses.backgroundSemantic.error.replace('bg-', ''), getAdaptiveClasses.text.primary, 'hover:' + getAdaptiveClasses.semantic.error.replace('text-', ''), getAdaptiveClasses.border.primary)
               }
               disabled:opacity-50 disabled:cursor-not-allowed
             `}
@@ -82,7 +85,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
             <button
               onClick={onRemovePenalty}
               disabled={disabled}
-              className="flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 hover:bg-green-100 text-gray-700 hover:text-green-800 border border-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={cn('flex items-center space-x-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed', getAdaptiveClasses.background.tertiary, 'hover:' + getAdaptiveClasses.backgroundSemantic.success.replace('bg-', ''), getAdaptiveClasses.text.primary, 'hover:' + getAdaptiveClasses.semantic.success.replace('text-', ''), getAdaptiveClasses.border.primary)}
               title="Remove penalty"
             >
               <RotateCcw className="w-4 h-4" />
@@ -97,7 +100,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
         <button
           onClick={onReset}
           disabled={disabled}
-          className="flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className={cn(buttonVariants.secondary, 'flex items-center space-x-2')}
           title="Reset timer (R key)"
         >
           <RotateCcw className="w-4 h-4" />
@@ -108,7 +111,7 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
           <button
             onClick={onOpenSettings}
             disabled={disabled}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-on-primary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Timer settings"
           >
             <Settings className="w-4 h-4" />
@@ -118,15 +121,15 @@ export const TimerControls: React.FC<TimerControlsProps> = ({
       </div>
 
       {/* Keyboard Shortcuts Help */}
-      <div className="text-xs text-gray-500 text-center space-y-1">
+      <div className="text-xs text-adaptive-tertiary text-center space-y-1">
         <div>
-          <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">SPACE</kbd> - Start/Stop timer
+          <kbd className="px-1 py-0.5 bg-adaptive-tertiary rounded text-xs">SPACE</kbd> - Start/Stop timer
         </div>
         <div>
-          <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">R</kbd> - Reset • 
-          <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">2</kbd> - +2 penalty • 
-          <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">D</kbd> - DNF • 
-          <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">C</kbd> - Clear penalty
+          <kbd className="px-1 py-0.5 bg-adaptive-tertiary rounded text-xs">R</kbd> - Reset • 
+          <kbd className="px-1 py-0.5 bg-adaptive-tertiary rounded text-xs">2</kbd> - +2 penalty • 
+          <kbd className="px-1 py-0.5 bg-adaptive-tertiary rounded text-xs">D</kbd> - DNF • 
+          <kbd className="px-1 py-0.5 bg-adaptive-tertiary rounded text-xs">C</kbd> - Clear penalty
         </div>
       </div>
     </div>

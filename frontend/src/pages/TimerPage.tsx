@@ -6,6 +6,7 @@ import { ScrambleDisplay } from '../components/scramble/ScrambleDisplay';
 import { SessionStatsDisplay } from '../components/statistics/SessionStatsDisplay';
 import { useTimer } from '../hooks/useTimer';
 import { useSessionContext } from '../context/SessionContext';
+import { useTimerContext } from '../context/TimerContext';
 import { useTimerSettings, useTimerSound, useTimerVisualEffects } from '../hooks/useTimerSettings';
 import { TimerResult, TimerState } from '../utils/timerUtils';
 import { PuzzleType, ScrambleService, ClientScrambleGenerator, ScrambleDto } from '../services/scrambleService';
@@ -43,6 +44,9 @@ const TimerPage: React.FC = () => {
     loadOrCreateSession,
     refreshSession
   } = useSessionContext();
+
+  // Timer context for global timer state management
+  const { setTimerState } = useTimerContext();
 
   // Enhanced solve completion handler with proper state management
   const handleEnhancedSolveComplete = async (result: TimerResult, isUpdate: boolean = false) => {
@@ -159,6 +163,7 @@ const TimerPage: React.FC = () => {
     currentTime,
     inspectionTimeRemaining,
     lastResult,
+    isHolding,
     reset: resetTimer,
     addPenalty,
     removePenalty
@@ -167,8 +172,14 @@ const TimerPage: React.FC = () => {
     mode: settings.mode,
     onSolveComplete: handleEnhancedSolveComplete,
     autoReset: false,
-    enableKeyboard: true
+    enableKeyboard: true,
+    enableHoldToStart: settings.enableHoldToStart
   });
+
+  // Sync timer state to context for global UI state management
+  useEffect(() => {
+    setTimerState(timerState);
+  }, [timerState, setTimerState]);
 
   // Function to generate a scramble
   const generateScramble = async (): Promise<ScrambleDto | null> => {
@@ -345,6 +356,18 @@ const TimerPage: React.FC = () => {
     }
   }, [timerState, playSound]);
 
+  // Inspection warning sound effect
+  useEffect(() => {
+    if (timerState === TimerState.INSPECTION && settings.enableInspectionWarning) {
+      const remainingSeconds = inspectionTimeRemaining / 1000;
+      
+      // Play warning sound when crossing the warning threshold
+      if (remainingSeconds <= settings.inspectionWarningTime && remainingSeconds > settings.inspectionWarningTime - 0.1) {
+        playSound('warning');
+      }
+    }
+  }, [timerState, inspectionTimeRemaining, settings.enableInspectionWarning, settings.inspectionWarningTime, playSound]);
+
   // Debug: Track session changes
   useEffect(() => {
     console.log('TimerPage: currentSession changed:', {
@@ -373,6 +396,11 @@ const TimerPage: React.FC = () => {
               inspectionTime={settings.inspectionTime}
               lastSolveTime={lastResult?.time}
               hideTime={settings.hideTime}
+              mode={settings.mode}
+              precision={settings.precision}
+              enableInspectionWarning={settings.enableInspectionWarning}
+              inspectionWarningTime={settings.inspectionWarningTime}
+              isHolding={isHolding}
               disabled={!currentScramble || !settingsLoaded}
             />
           </div>
@@ -382,21 +410,21 @@ const TimerPage: React.FC = () => {
         <div className="space-y-8 py-8">
           {/* Header */}
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Practice Timer</h1>
-            <p className="text-gray-600">
+            <h1 className="text-3xl font-bold text-adaptive-primary mb-2">Practice Timer</h1>
+            <p className="text-adaptive-secondary">
               Generate scrambles, time your solves, and track your progress
             </p>
           </div>
 
           {/* Puzzle Type Selector */}
           <div className="flex justify-center">
-            <div className="bg-white rounded-lg border border-gray-200 p-1 inline-flex">
+            <div className="bg-adaptive-secondary rounded-lg border border-adaptive-primary p-1 inline-flex">
               <button
                 onClick={() => setSelectedPuzzleType(PuzzleType.CUBE_2X2)}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                   selectedPuzzleType === PuzzleType.CUBE_2X2
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-primary-600 text-on-primary'
+                    : 'text-adaptive-secondary hover:text-adaptive-primary'
                 }`}
               >
                 2x2
@@ -405,8 +433,8 @@ const TimerPage: React.FC = () => {
                 onClick={() => setSelectedPuzzleType(PuzzleType.CUBE_3X3)}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                   selectedPuzzleType === PuzzleType.CUBE_3X3
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-primary-600 text-on-primary'
+                    : 'text-adaptive-secondary hover:text-adaptive-primary'
                 }`}
               >
                 3x3
@@ -415,8 +443,8 @@ const TimerPage: React.FC = () => {
                 onClick={() => setSelectedPuzzleType(PuzzleType.CUBE_4X4)}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                   selectedPuzzleType === PuzzleType.CUBE_4X4
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-primary-600 text-on-primary'
+                    : 'text-adaptive-secondary hover:text-adaptive-primary'
                 }`}
               >
                 4x4
@@ -433,8 +461,8 @@ const TimerPage: React.FC = () => {
               onGenerateNew={handleGenerateScramble}
             />
               {scrambleError && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-700 text-sm">
+                <div className="mt-4 p-4 bg-error border border-error rounded-lg">
+                  <p className="text-error text-sm">
                     Failed to generate scramble: {scrambleError}
                   </p>
                 </div>
@@ -452,6 +480,11 @@ const TimerPage: React.FC = () => {
                 inspectionTime={settings.inspectionTime}
                 lastSolveTime={lastResult?.time}
                 hideTime={settings.hideTime}
+                mode={settings.mode}
+                precision={settings.precision}
+                enableInspectionWarning={settings.enableInspectionWarning}
+                inspectionWarningTime={settings.inspectionWarningTime}
+                isHolding={isHolding}
                 disabled={!currentScramble || !settingsLoaded}
               />
             </div>
@@ -466,7 +499,8 @@ const TimerPage: React.FC = () => {
                 onRemovePenalty={removePenalty}
                 onReset={handleReset}
                 onOpenSettings={() => setShowSettings(true)}
-                disabled={timerState === TimerState.SOLVING || timerState === TimerState.INSPECTION}
+                precision={settings.precision}
+                disabled={false}
               />
             </div>
           </div>
@@ -483,14 +517,14 @@ const TimerPage: React.FC = () => {
           />
 
           {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="text-lg font-medium text-blue-900 mb-2">How to Use</h3>
-            <ul className="text-blue-800 text-sm space-y-1">
-              <li>• Press <kbd className="px-2 py-1 bg-blue-100 rounded text-xs">SPACE</kbd> to start inspection</li>
-              <li>• Press <kbd className="px-2 py-1 bg-blue-100 rounded text-xs">SPACE</kbd> again to start solving</li>
-              <li>• Press <kbd className="px-2 py-1 bg-blue-100 rounded text-xs">SPACE</kbd> when finished to stop the timer</li>
-              <li>• Use <kbd className="px-2 py-1 bg-blue-100 rounded text-xs">2</kbd> for +2 penalty, <kbd className="px-2 py-1 bg-blue-100 rounded text-xs">D</kbd> for DNF</li>
-              <li>• Press <kbd className="px-2 py-1 bg-blue-100 rounded text-xs">R</kbd> to reset and get a new scramble</li>
+          <div className="bg-adaptive-tertiary border border-adaptive-primary rounded-lg p-6">
+            <h3 className="text-lg font-medium text-adaptive-primary mb-2">How to Use</h3>
+            <ul className="text-adaptive-secondary text-sm space-y-1">
+              <li>• Press <kbd className="px-2 py-1 bg-adaptive-secondary border border-adaptive-primary rounded text-xs">SPACE</kbd> to start inspection</li>
+              <li>• Press <kbd className="px-2 py-1 bg-adaptive-secondary border border-adaptive-primary rounded text-xs">SPACE</kbd> again to start solving</li>
+              <li>• Press <kbd className="px-2 py-1 bg-adaptive-secondary border border-adaptive-primary rounded text-xs">SPACE</kbd> when finished to stop the timer</li>
+              <li>• Use <kbd className="px-2 py-1 bg-adaptive-secondary border border-adaptive-primary rounded text-xs">2</kbd> for +2 penalty, <kbd className="px-2 py-1 bg-adaptive-secondary border border-adaptive-primary rounded text-xs">D</kbd> for DNF</li>
+              <li>• Press <kbd className="px-2 py-1 bg-adaptive-secondary border border-adaptive-primary rounded text-xs">R</kbd> to reset and get a new scramble</li>
             </ul>
           </div>
         </div>

@@ -66,14 +66,14 @@ export interface TimeDistribution {
 
 export interface PagedSolves {
   content: SolveDto[];
-  pagination: {
-    page: number;
-    size: number;
-    totalElements: number;
-    totalPages: number;
-    first: boolean;
-    last: boolean;
-  };
+  last: boolean;
+  totalPages: number;
+  totalElements: number;
+  first: boolean;
+  numberOfElements: number;
+  size: number;
+  number: number;
+  empty: boolean;
 }
 
 export enum PenaltyType {
@@ -166,7 +166,7 @@ export class SolveService {
    */
   static async getUserSolves(page: number = 0, size: number = 20): Promise<PagedSolves> {
     try {
-      const response = await api.get('/', {
+      const response = await api.get('', {
         params: { page, size }
       });
       return response.data;
@@ -277,6 +277,62 @@ export class SolveService {
     } catch (error) {
       console.error('Error fetching time distribution:', error);
       throw new Error('Failed to fetch time distribution');
+    }
+  }
+
+  /**
+   * Calculate time distribution from session solves data
+   */
+  static calculateTimeDistributionFromSolves(solves: SolveDto[]): TimeDistribution {
+    const validSolves = solves.filter(solve => solve.penalty !== 'DNF');
+    const totalSolves = validSolves.length;
+
+    if (totalSolves === 0) {
+      return {
+        sub10Count: 0,
+        sub15Count: 0,
+        sub20Count: 0,
+        sub30Count: 0,
+        sub60Count: 0,
+        plus60Count: 0,
+        dnfCount: solves.length - totalSolves,
+        plusTwoCount: solves.filter(solve => solve.penalty === 'PLUS_TWO').length,
+        totalCount: 0
+      };
+    }
+
+    const timeInSeconds = validSolves.map(solve => solve.timeMs / 1000);
+    
+    const sub10Count = timeInSeconds.filter(time => time < 10).length;
+    const sub15Count = timeInSeconds.filter(time => time < 15).length;
+    const sub20Count = timeInSeconds.filter(time => time < 20).length;
+    const sub30Count = timeInSeconds.filter(time => time < 30).length;
+    const sub60Count = timeInSeconds.filter(time => time < 60).length;
+    const over60Count = timeInSeconds.filter(time => time >= 60).length;
+
+    return {
+      sub10Count,
+      sub15Count,
+      sub20Count,
+      sub30Count,
+      sub60Count,
+      plus60Count: over60Count,
+      dnfCount: solves.filter(solve => solve.penalty === 'DNF').length,
+      plusTwoCount: solves.filter(solve => solve.penalty === 'PLUS_TWO').length,
+      totalCount: totalSolves
+    };
+  }
+
+  /**
+   * Get session-specific time distribution
+   */
+  static async getSessionTimeDistribution(sessionId: string): Promise<TimeDistribution> {
+    try {
+      const sessionSolves = await this.getSessionSolves(sessionId);
+      return this.calculateTimeDistributionFromSolves(sessionSolves);
+    } catch (error) {
+      console.error('Error calculating session time distribution:', error);
+      throw new Error('Failed to calculate session time distribution');
     }
   }
 }

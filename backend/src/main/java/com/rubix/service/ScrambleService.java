@@ -5,7 +5,6 @@ import com.rubix.model.entity.User;
 import com.rubix.repository.ScrambleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,7 +90,6 @@ public class ScrambleService {
      * Get recent scrambles for a puzzle type
      */
     @Transactional(readOnly = true)
-    // @Cacheable(value = "recent_scrambles", key = "#puzzleType + '_' + #limit") // Disabled for MVP
     public List<Scramble> getRecentScrambles(Scramble.PuzzleType puzzleType, int limit) {
         return scrambleRepository.findByPuzzleTypeOrderByGeneratedAtDesc(puzzleType.name(), limit);
     }

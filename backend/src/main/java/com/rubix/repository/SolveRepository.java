@@ -3,6 +3,7 @@ package com.rubix.repository;
 import com.rubix.model.entity.Scramble;
 import com.rubix.model.entity.Solve;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -25,12 +26,14 @@ public interface SolveRepository extends JpaRepository<Solve, UUID> {
     /**
      * Find user's solves ordered by solve time (newest first)
      */
-    Page<Solve> findByUserIdOrderBySolvedAtDesc(UUID userId, Pageable pageable);
+    @Query("SELECT s FROM Solve s JOIN FETCH s.scramble WHERE s.user.id = :userId ORDER BY s.solvedAt DESC")
+    Page<Solve> findByUserIdOrderBySolvedAtDesc(@Param("userId") UUID userId, Pageable pageable);
 
     /**
      * Find solves for a specific session
      */
-    List<Solve> findBySessionIdOrderBySolvedAtDesc(UUID sessionId);
+    @Query("SELECT s FROM Solve s JOIN FETCH s.scramble WHERE s.session.id = :sessionId ORDER BY s.solvedAt DESC")
+    List<Solve> findBySessionIdOrderBySolvedAtDesc(@Param("sessionId") UUID sessionId);
 
     /**
      * Find solves in date range
@@ -51,8 +54,8 @@ public interface SolveRepository extends JpaRepository<Solve, UUID> {
     /**
      * Find recent solves by user (limited)
      */
-    @Query(value = "SELECT * FROM solves WHERE user_id = :userId ORDER BY solved_at DESC LIMIT :limit", nativeQuery = true)
-    List<Solve> findRecentSolvesByUser(@Param("userId") UUID userId, @Param("limit") int limit);
+    @Query("SELECT s FROM Solve s JOIN FETCH s.scramble WHERE s.user.id = :userId ORDER BY s.solvedAt DESC")
+    List<Solve> findRecentSolvesByUser(@Param("userId") UUID userId, Pageable pageable);
 
     /**
      * Find recent valid solves (non-DNF) by user and puzzle type
@@ -74,19 +77,26 @@ public interface SolveRepository extends JpaRepository<Solve, UUID> {
      * Find personal best solve (fastest valid time)
      */
     @Query("""
-        SELECT s FROM Solve s 
+        SELECT s FROM Solve s JOIN FETCH s.scramble
         WHERE s.user.id = :userId 
         AND s.scramble.puzzleType = :puzzleType 
         AND s.penalty != 'DNF' 
-        ORDER BY s.adjustedTimeMs ASC 
-        LIMIT 1
+        ORDER BY s.adjustedTimeMs ASC
         """)
-    Optional<Solve> findPersonalBest(@Param("userId") UUID userId, @Param("puzzleType") Scramble.PuzzleType puzzleType);
+    List<Solve> findPersonalBestCandidates(@Param("userId") UUID userId, @Param("puzzleType") Scramble.PuzzleType puzzleType, Pageable pageable);
+    
+    /**
+     * Find personal best solve (fastest valid time) - convenience method
+     */
+    default Optional<Solve> findPersonalBest(UUID userId, Scramble.PuzzleType puzzleType) {
+        List<Solve> candidates = findPersonalBestCandidates(userId, puzzleType, PageRequest.of(0, 1));
+        return candidates.isEmpty() ? Optional.empty() : Optional.of(candidates.get(0));
+    }
 
     /**
      * Find solves by puzzle type for user
      */
-    @Query("SELECT s FROM Solve s WHERE s.user.id = :userId AND s.scramble.puzzleType = :puzzleType ORDER BY s.solvedAt DESC")
+    @Query("SELECT s FROM Solve s JOIN FETCH s.scramble WHERE s.user.id = :userId AND s.scramble.puzzleType = :puzzleType ORDER BY s.solvedAt DESC")
     List<Solve> findByUserIdAndPuzzleType(@Param("userId") UUID userId, @Param("puzzleType") Scramble.PuzzleType puzzleType);
 
     /**

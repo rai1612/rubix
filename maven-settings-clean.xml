@@ -8,3 +8,4 @@
   <localRepository>${user.home}/.m2/repository</localRepository>
   
 </settings>
+

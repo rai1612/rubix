@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { TimerMode, TimerPrecision, DEFAULT_TIMER_SETTINGS } from '../utils/timerUtils';
+import { useCallback, useState } from 'react';
+import { DEFAULT_TIMER_SETTINGS } from '../utils/timerUtils';
 import { TimerSettingsState } from '../components/timer/TimerSettings';
-
-const STORAGE_KEY = 'rubix_timer_settings';
+import { useSettings } from './useSettings';
 
 const defaultSettings: TimerSettingsState = {
   inspectionTime: DEFAULT_TIMER_SETTINGS.inspectionTime,
@@ -24,61 +23,18 @@ interface UseTimerSettingsReturn {
 }
 
 export const useTimerSettings = (): UseTimerSettingsReturn => {
-  const [settings, setSettings] = useState<TimerSettingsState>(defaultSettings);
-  const [isLoaded, setIsLoaded] = useState(false);
+  // Use the main settings hook and extract timer settings
+  const { settings: allSettings, updateSettings: updateAllSettings, resetSettings: resetAllSettings, isLoaded } = useSettings();
+  
+  const settings = allSettings.timer || defaultSettings;
+  
+  const updateSettings = useCallback(async (newSettings: TimerSettingsState) => {
+    await updateAllSettings('timer', newSettings);
+  }, [updateAllSettings]);
 
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsedSettings = JSON.parse(stored);
-        
-        // Validate and merge with defaults to handle new settings
-        const validatedSettings: TimerSettingsState = {
-          ...defaultSettings,
-          ...parsedSettings,
-          // Ensure enum values are valid
-          mode: Object.values(TimerMode).includes(parsedSettings.mode) 
-            ? parsedSettings.mode 
-            : defaultSettings.mode,
-          precision: [TimerPrecision.CENTISECONDS, TimerPrecision.MILLISECONDS].includes(parsedSettings.precision)
-            ? parsedSettings.precision
-            : defaultSettings.precision,
-          // Validate numeric ranges
-          inspectionTime: Math.max(0, Math.min(30, parsedSettings.inspectionTime || defaultSettings.inspectionTime)),
-          inspectionWarningTime: Math.max(3, Math.min(10, parsedSettings.inspectionWarningTime || defaultSettings.inspectionWarningTime))
-        };
-        
-        setSettings(validatedSettings);
-      }
-    } catch (error) {
-      console.warn('Error loading timer settings, using defaults:', error);
-      setSettings(defaultSettings);
-    } finally {
-      setIsLoaded(true);
-    }
-  }, []);
-
-  // Save settings to localStorage whenever they change
-  const updateSettings = useCallback((newSettings: TimerSettingsState) => {
-    try {
-      setSettings(newSettings);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
-    } catch (error) {
-      console.error('Error saving timer settings:', error);
-    }
-  }, []);
-
-  // Reset to default settings
-  const resetSettings = useCallback(() => {
-    try {
-      setSettings(defaultSettings);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultSettings));
-    } catch (error) {
-      console.error('Error resetting timer settings:', error);
-    }
-  }, []);
+  const resetSettings = useCallback(async () => {
+    await resetAllSettings('timer');
+  }, [resetAllSettings]);
 
   return {
     settings,

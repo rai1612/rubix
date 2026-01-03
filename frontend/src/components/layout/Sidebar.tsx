@@ -10,8 +10,11 @@ import {
   User,
   Target,
   Trophy,
-  Clock
+  Clock,
+  Box,
 } from 'lucide-react';
+import { cn, getAdaptiveClasses } from '../../utils/appearanceUtils';
+import { useTodayStats } from '../../hooks/useTodayStats';
 
 interface SidebarProps {
   onItemClick?: () => void;
@@ -25,6 +28,8 @@ interface NavItem {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
+  const { stats: todayStats, isLoading: isLoadingStats } = useTodayStats();
+
   const navItems: NavItem[] = [
     {
       to: '/',
@@ -51,6 +56,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       icon: Calendar,
       label: 'Sessions',
     },
+    {
+      to: '/visualizer',
+      icon: Box,
+      label: 'Visualizer',
+    },
   ];
 
   const secondaryNavItems: NavItem[] = [
@@ -67,11 +77,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   ];
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className={cn('h-full flex flex-col', getAdaptiveClasses.background.secondary)}>
       {/* Main navigation */}
       <nav className="flex-1 p-4 space-y-2">
         <div className="mb-6">
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <h2 className={cn(
+            'text-xs font-semibold uppercase tracking-wider mb-3',
+            getAdaptiveClasses.text.tertiary
+          )}>
             Practice
           </h2>
           <ul className="space-y-1">
@@ -81,17 +94,21 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                   to={item.to}
                   onClick={onItemClick}
                   className={({ isActive }) =>
-                    `flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    cn(
+                      'flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-primary-100 text-primary-700 border-r-2 border-primary-600'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                    }`
+                        ? cn('bg-primary-100 border-r-2 border-primary-600', getAdaptiveClasses.textOnPrimary.light)
+                        : cn(getAdaptiveClasses.text.secondary, 'hover:bg-adaptive-tertiary hover:text-adaptive-primary')
+                    )
                   }
                 >
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
                   {item.badge && (
-                    <span className="ml-auto bg-primary-100 text-primary-800 text-xs px-2 py-1 rounded-full">
+                    <span className={cn(
+                      'ml-auto bg-primary-100 text-xs px-2 py-1 rounded-full',
+                      getAdaptiveClasses.textOnPrimary.light
+                    )}>
                       {item.badge}
                     </span>
                   )}
@@ -102,38 +119,53 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         </div>
 
         {/* Quick stats section */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+        <div className={cn('mb-6 p-4 rounded-lg', getAdaptiveClasses.background.tertiary)}>
+          <h3 className={cn(
+            'text-xs font-semibold uppercase tracking-wider mb-3',
+            getAdaptiveClasses.text.tertiary
+          )}>
             Today
           </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-600">Solves</span>
+                <Clock className={cn('w-4 h-4', getAdaptiveClasses.text.tertiary)} />
+                <span className={cn('text-sm', getAdaptiveClasses.text.secondary)}>Solves</span>
               </div>
-              <span className="text-sm font-medium text-gray-900">12</span>
+              <span className={cn('text-sm font-medium', getAdaptiveClasses.text.primary)}>
+                {isLoadingStats ? '...' : (todayStats?.solveCount ?? 0)}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Target className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-600">Avg</span>
+                <Target className={cn('w-4 h-4', getAdaptiveClasses.text.tertiary)} />
+                <span className={cn('text-sm', getAdaptiveClasses.text.secondary)}>Avg</span>
               </div>
-              <span className="text-sm font-medium text-gray-900">16.42</span>
+              <span className={cn('text-sm font-medium', getAdaptiveClasses.text.primary)}>
+                {isLoadingStats ? '...' : (todayStats?.averageTime ?? '--')}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Trophy className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-600">Best</span>
+                <Trophy className={cn('w-4 h-4', getAdaptiveClasses.text.tertiary)} />
+                <span className={cn('text-sm', getAdaptiveClasses.text.secondary)}>Best</span>
               </div>
-              <span className="text-sm font-medium text-green-600">13.21</span>
+              <span className={cn(
+                'text-sm font-medium',
+                isLoadingStats ? getAdaptiveClasses.text.primary : 'text-success'
+              )}>
+                {isLoadingStats ? '...' : (todayStats?.bestTime ?? '--')}
+              </span>
             </div>
           </div>
         </div>
 
         {/* Account section */}
         <div>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <h2 className={cn(
+            'text-xs font-semibold uppercase tracking-wider mb-3',
+            getAdaptiveClasses.text.tertiary
+          )}>
             Account
           </h2>
           <ul className="space-y-1">
@@ -143,11 +175,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                   to={item.to}
                   onClick={onItemClick}
                   className={({ isActive }) =>
-                    `flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    cn(
+                      'flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-primary-100 text-primary-700'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                    }`
+                        ? cn('bg-primary-100', getAdaptiveClasses.textOnPrimary.light)
+                        : cn(getAdaptiveClasses.text.secondary, 'hover:bg-adaptive-tertiary hover:text-adaptive-primary')
+                    )
                   }
                 >
                   <item.icon className="w-5 h-5" />
@@ -160,11 +193,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="text-xs text-gray-500 text-center">
+      <div className={cn('p-4 border-t', getAdaptiveClasses.border.primary)}>
+        <div className={cn('text-xs text-center', getAdaptiveClasses.text.tertiary)}>
           <p>rubiX v0.1.0</p>
           <p className="mt-1">
-            <span className="text-green-500">●</span> Online
+            <span className="text-success">●</span> Online
           </p>
         </div>
       </div>

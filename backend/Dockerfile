@@ -40,13 +40,10 @@ RUN chown -R app:app /app
 # Switch to app user
 USER app
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/api/actuator/health || exit 1
-
-# Expose port (Render uses PORT env variable)
-EXPOSE 8080
-ENV PORT=8080
+# Render provides PORT env variable (typically 10000)
+# Remove HEALTHCHECK - Render handles this via healthCheckPath in render.yaml
+ENV PORT=10000
+EXPOSE 10000
 
 # Set JVM options for containerized environment
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -XX:+UseStringDeduplication"

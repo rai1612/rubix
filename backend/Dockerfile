@@ -52,4 +52,5 @@ ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -
 ENTRYPOINT ["dumb-init", "--"]
 
 # Run the application with dynamic port support
-CMD ["sh", "-c", "java $JAVA_OPTS -Dserver.port=${PORT:-10000} -jar app.jar"]
+# IMPORTANT: Bind to 0.0.0.0 for Render to detect the port
+CMD ["sh", "-c", "java $JAVA_OPTS -Dserver.port=${PORT:-10000} -Dserver.address=0.0.0.0 -jar app.jar"]

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: rubix-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    repo: https://github.com/rai1612/rubix.git
+    branch: deploy-mvp
+    plan: free
+    healthCheckPath: /api/actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SPRING_DATASOURCE_URL
+        sync: false  # Set manually in Render dashboard
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false  # Set manually in Render dashboard
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false  # Set manually in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true  # Render auto-generates a secure value
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false  # Set manually after frontend deploy
+

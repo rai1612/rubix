@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS solves (
     tags VARCHAR(255)[],
     -- Performance tracking fields
     move_count INTEGER,
-    tps DECIMAL(5,2), -- Turns per second
+    tps DOUBLE PRECISION, -- Turns per second
     -- Future analytics fields
     cross_time_ms INTEGER,
     f2l_time_ms INTEGER,

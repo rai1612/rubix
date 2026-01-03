@@ -1,0 +1,717 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for rubiX */
+
+/* Font import for monospace timer display */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* ========================================
+   APPEARANCE SYSTEM - CSS VARIABLES
+   ======================================== */
+
+:root {
+  /* Default primary color palette (blue) - will be overridden by adaptive system */
+  --color-primary-50: rgb(239, 246, 255);
+  --color-primary-100: rgb(219, 234, 254);
+  --color-primary-200: rgb(191, 219, 254);
+  --color-primary-300: rgb(147, 197, 253);
+  --color-primary-400: rgb(96, 165, 250);
+  --color-primary-500: rgb(59, 130, 246);
+  --color-primary-600: rgb(37, 99, 235);
+  --color-primary-700: rgb(29, 78, 216);
+  --color-primary-800: rgb(30, 64, 175);
+  --color-primary-900: rgb(30, 58, 138);
+  
+  /* Semantic colors - will be generated based on primary color */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+  
+  /* Font scaling */
+  --font-scale: 1;
+  
+  /* Spacing scaling */
+  --spacing-scale: 1;
+  
+  /* Animation duration */
+  --animation-duration: 0.2s;
+  
+  /* Transition timing */
+  --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   THEME SYSTEM - LIGHT & DARK MODES
+   ======================================== */
+
+/* Light theme (default) - colors will be overridden by adaptive system */
+:root,
+:root.light {
+  --bg-primary: rgb(249, 250, 251);
+  --bg-secondary: rgb(255, 255, 255);
+  --bg-tertiary: rgb(243, 244, 246);
+  --text-primary: rgb(17, 24, 39);
+  --text-secondary: rgb(75, 85, 99);
+  --text-tertiary: rgb(156, 163, 175);
+  --border-primary: rgb(229, 231, 235);
+  --border-secondary: rgb(209, 213, 219);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Dark theme - colors will be overridden by adaptive system */
+:root.dark {
+  --bg-primary: rgb(17, 24, 39);
+  --bg-secondary: rgb(31, 41, 55);
+  --bg-tertiary: rgb(55, 65, 81);
+  --text-primary: rgb(243, 244, 246);
+  --text-secondary: rgb(209, 213, 219);
+  --text-tertiary: rgb(156, 163, 175);
+  --border-primary: rgb(75, 85, 99);
+  --border-secondary: rgb(107, 114, 128);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+}
+
+/* ========================================
+   FONT SIZE SYSTEM
+   ======================================== */
+
+.font-size-small {
+  font-size: calc(1rem * 0.875);
+}
+
+.font-size-small h1 { font-size: calc(2.25rem * 0.875); }
+.font-size-small h2 { font-size: calc(1.875rem * 0.875); }
+.font-size-small h3 { font-size: calc(1.5rem * 0.875); }
+.font-size-small h4 { font-size: calc(1.25rem * 0.875); }
+.font-size-small h5 { font-size: calc(1.125rem * 0.875); }
+.font-size-small h6 { font-size: calc(1rem * 0.875); }
+
+.font-size-medium {
+  font-size: 1rem;
+}
+
+.font-size-large {
+  font-size: calc(1rem * 1.125);
+}
+
+.font-size-large h1 { font-size: calc(2.25rem * 1.125); }
+.font-size-large h2 { font-size: calc(1.875rem * 1.125); }
+.font-size-large h3 { font-size: calc(1.5rem * 1.125); }
+.font-size-large h4 { font-size: calc(1.25rem * 1.125); }
+.font-size-large h5 { font-size: calc(1.125rem * 1.125); }
+.font-size-large h6 { font-size: calc(1rem * 1.125); }
+
+/* ========================================
+   ANIMATION SYSTEM
+   ======================================== */
+
+.reduce-motion,
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ========================================
+   COMPACT MODE SYSTEM
+   ======================================== */
+
+.compact-mode {
+  --spacing-scale: 0.75;
+}
+
+.compact-mode .p-1 { padding: calc(0.25rem * var(--spacing-scale)); }
+.compact-mode .p-2 { padding: calc(0.5rem * var(--spacing-scale)); }
+.compact-mode .p-3 { padding: calc(0.75rem * var(--spacing-scale)); }
+.compact-mode .p-4 { padding: calc(1rem * var(--spacing-scale)); }
+.compact-mode .p-6 { padding: calc(1.5rem * var(--spacing-scale)); }
+.compact-mode .p-8 { padding: calc(2rem * var(--spacing-scale)); }
+
+.compact-mode .m-1 { margin: calc(0.25rem * var(--spacing-scale)); }
+.compact-mode .m-2 { margin: calc(0.5rem * var(--spacing-scale)); }
+.compact-mode .m-3 { margin: calc(0.75rem * var(--spacing-scale)); }
+.compact-mode .m-4 { margin: calc(1rem * var(--spacing-scale)); }
+.compact-mode .m-6 { margin: calc(1.5rem * var(--spacing-scale)); }
+.compact-mode .m-8 { margin: calc(2rem * var(--spacing-scale)); }
+
+.compact-mode .space-y-2 > * + * { margin-top: calc(0.5rem * var(--spacing-scale)); }
+.compact-mode .space-y-3 > * + * { margin-top: calc(0.75rem * var(--spacing-scale)); }
+.compact-mode .space-y-4 > * + * { margin-top: calc(1rem * var(--spacing-scale)); }
+.compact-mode .space-y-6 > * + * { margin-top: calc(1.5rem * var(--spacing-scale)); }
+
+/* ========================================
+   ADAPTIVE COMPONENT STYLES
+   ======================================== */
+
+/* Buttons adapt to primary color with optimal text contrast */
+.btn-primary {
+  background-color: var(--color-primary-600);
+  color: var(--text-on-primary);
+  transition: all var(--animation-duration) var(--transition-timing);
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-700);
+  color: var(--text-on-primary);
+}
+
+.btn-primary:focus {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+/* Cards adapt to theme */
+.card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  transition: all var(--animation-duration) var(--transition-timing);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Text adapts to theme */
+.text-adaptive-primary { color: var(--text-primary); }
+.text-adaptive-secondary { color: var(--text-secondary); }
+.text-adaptive-tertiary { color: var(--text-tertiary); }
+
+/* Backgrounds adapt to theme */
+.bg-adaptive-primary { background-color: var(--bg-primary); }
+.bg-adaptive-secondary { background-color: var(--bg-secondary); }
+.bg-adaptive-tertiary { background-color: var(--bg-tertiary); }
+
+/* Borders adapt to theme */
+.border-adaptive-primary { border-color: var(--border-primary); }
+.border-adaptive-secondary { border-color: var(--border-secondary); }
+
+/* Override common Tailwind classes with adaptive colors */
+html .bg-white { background-color: var(--bg-secondary) !important; }
+html .bg-gray-50 { background-color: var(--bg-primary) !important; }
+html .bg-gray-100 { background-color: var(--bg-tertiary) !important; }
+html .bg-gray-200 { background-color: var(--border-primary) !important; }
+html .bg-gray-300 { background-color: var(--border-secondary) !important; }
+
+html .text-gray-900 { color: var(--text-primary) !important; }
+html .text-gray-800 { color: var(--text-primary) !important; }
+html .text-gray-700 { color: var(--text-primary) !important; }
+html .text-gray-600 { color: var(--text-secondary) !important; }
+html .text-gray-500 { color: var(--text-tertiary) !important; }
+html .text-gray-400 { color: var(--text-tertiary) !important; }
+
+html .border-gray-200 { border-color: var(--border-primary) !important; }
+html .border-gray-300 { border-color: var(--border-secondary) !important; }
+
+html .hover\:bg-gray-100:hover { background-color: var(--bg-tertiary) !important; }
+html .hover\:bg-gray-200:hover { background-color: var(--border-primary) !important; }
+
+/* Semantic color overrides that adapt to theme */
+html .bg-red-100 { background-color: color-mix(in srgb, var(--color-error) 15%, var(--bg-secondary)) !important; }
+html .bg-red-200 { background-color: color-mix(in srgb, var(--color-error) 25%, var(--bg-secondary)) !important; }
+html .bg-red-500 { background-color: var(--color-error) !important; }
+html .bg-red-600 { background-color: color-mix(in srgb, var(--color-error) 90%, black 10%) !important; }
+html .bg-red-700 { background-color: color-mix(in srgb, var(--color-error) 80%, black 20%) !important; }
+
+html .bg-green-100 { background-color: color-mix(in srgb, var(--color-success) 15%, var(--bg-secondary)) !important; }
+html .bg-green-200 { background-color: color-mix(in srgb, var(--color-success) 25%, var(--bg-secondary)) !important; }
+html .bg-green-500 { background-color: var(--color-success) !important; }
+html .bg-green-600 { background-color: color-mix(in srgb, var(--color-success) 90%, black 10%) !important; }
+html .bg-green-700 { background-color: color-mix(in srgb, var(--color-success) 80%, black 20%) !important; }
+
+html .bg-blue-100 { background-color: color-mix(in srgb, var(--color-info) 15%, var(--bg-secondary)) !important; }
+html .bg-blue-200 { background-color: color-mix(in srgb, var(--color-info) 25%, var(--bg-secondary)) !important; }
+html .bg-blue-500 { background-color: var(--color-info) !important; }
+html .bg-blue-600 { background-color: color-mix(in srgb, var(--color-info) 90%, black 10%) !important; }
+html .bg-blue-700 { background-color: color-mix(in srgb, var(--color-info) 80%, black 20%) !important; }
+
+html .bg-yellow-100 { background-color: color-mix(in srgb, var(--color-warning) 15%, var(--bg-secondary)) !important; }
+html .bg-yellow-200 { background-color: color-mix(in srgb, var(--color-warning) 25%, var(--bg-secondary)) !important; }
+html .bg-yellow-500 { background-color: var(--color-warning) !important; }
+html .bg-yellow-600 { background-color: color-mix(in srgb, var(--color-warning) 90%, black 10%) !important; }
+html .bg-yellow-700 { background-color: color-mix(in srgb, var(--color-warning) 80%, black 20%) !important; }
+
+html .text-red-500 { color: var(--color-error) !important; }
+html .text-red-600 { color: color-mix(in srgb, var(--color-error) 90%, black 10%) !important; }
+html .text-red-700 { color: color-mix(in srgb, var(--color-error) 80%, black 20%) !important; }
+html .text-red-800 { color: color-mix(in srgb, var(--color-error) 70%, black 30%) !important; }
+
+html .text-green-500 { color: var(--color-success) !important; }
+html .text-green-600 { color: color-mix(in srgb, var(--color-success) 90%, black 10%) !important; }
+html .text-green-700 { color: color-mix(in srgb, var(--color-success) 80%, black 20%) !important; }
+html .text-green-800 { color: color-mix(in srgb, var(--color-success) 70%, black 30%) !important; }
+
+html .text-blue-500 { color: var(--color-info) !important; }
+html .text-blue-600 { color: color-mix(in srgb, var(--color-info) 90%, black 10%) !important; }
+html .text-blue-700 { color: color-mix(in srgb, var(--color-info) 80%, black 20%) !important; }
+html .text-blue-800 { color: color-mix(in srgb, var(--color-info) 70%, black 30%) !important; }
+
+html .text-yellow-500 { color: var(--color-warning) !important; }
+html .text-yellow-600 { color: color-mix(in srgb, var(--color-warning) 90%, black 10%) !important; }
+html .text-yellow-700 { color: color-mix(in srgb, var(--color-warning) 80%, black 20%) !important; }
+html .text-yellow-800 { color: color-mix(in srgb, var(--color-warning) 70%, black 30%) !important; }
+
+html .border-red-500 { border-color: var(--color-error) !important; }
+html .border-green-500 { border-color: var(--color-success) !important; }
+html .border-blue-500 { border-color: var(--color-info) !important; }
+html .border-yellow-500 { border-color: var(--color-warning) !important; }
+
+/* ========================================
+   TAILWIND INTEGRATION - CUSTOM UTILITIES
+   ======================================== */
+
+@layer utilities {
+  /* Primary color utilities using CSS variables */
+  .text-primary-50 { color: var(--color-primary-50); }
+  .text-primary-100 { color: var(--color-primary-100); }
+  .text-primary-200 { color: var(--color-primary-200); }
+  .text-primary-300 { color: var(--color-primary-300); }
+  .text-primary-400 { color: var(--color-primary-400); }
+  .text-primary-500 { color: var(--color-primary-500); }
+  .text-primary-600 { color: var(--color-primary-600); }
+  .text-primary-700 { color: var(--color-primary-700); }
+  .text-primary-800 { color: var(--color-primary-800); }
+  .text-primary-900 { color: var(--color-primary-900); }
+  
+  .bg-primary-50 { background-color: var(--color-primary-50); }
+  .bg-primary-100 { background-color: var(--color-primary-100); }
+  .bg-primary-200 { background-color: var(--color-primary-200); }
+  .bg-primary-300 { background-color: var(--color-primary-300); }
+  .bg-primary-400 { background-color: var(--color-primary-400); }
+  .bg-primary-500 { background-color: var(--color-primary-500); }
+  .bg-primary-600 { background-color: var(--color-primary-600); }
+  .bg-primary-700 { background-color: var(--color-primary-700); }
+  .bg-primary-800 { background-color: var(--color-primary-800); }
+  .bg-primary-900 { background-color: var(--color-primary-900); }
+  
+  .border-primary-50 { border-color: var(--color-primary-50); }
+  .border-primary-100 { border-color: var(--color-primary-100); }
+  .border-primary-200 { border-color: var(--color-primary-200); }
+  .border-primary-300 { border-color: var(--color-primary-300); }
+  .border-primary-400 { border-color: var(--color-primary-400); }
+  .border-primary-500 { border-color: var(--color-primary-500); }
+  .border-primary-600 { border-color: var(--color-primary-600); }
+  .border-primary-700 { border-color: var(--color-primary-700); }
+  .border-primary-800 { border-color: var(--color-primary-800); }
+  .border-primary-900 { border-color: var(--color-primary-900); }
+  
+  .ring-primary-50 { --tw-ring-color: var(--color-primary-50); }
+  .ring-primary-100 { --tw-ring-color: var(--color-primary-100); }
+  .ring-primary-200 { --tw-ring-color: var(--color-primary-200); }
+  .ring-primary-300 { --tw-ring-color: var(--color-primary-300); }
+  .ring-primary-400 { --tw-ring-color: var(--color-primary-400); }
+  .ring-primary-500 { --tw-ring-color: var(--color-primary-500); }
+  .ring-primary-600 { --tw-ring-color: var(--color-primary-600); }
+  .ring-primary-700 { --tw-ring-color: var(--color-primary-700); }
+  .ring-primary-800 { --tw-ring-color: var(--color-primary-800); }
+  .ring-primary-900 { --tw-ring-color: var(--color-primary-900); }
+  
+  /* Focus ring utilities */
+  .focus\:ring-primary-500:focus { --tw-ring-color: var(--color-primary-500); }
+  .focus\:ring-primary-600:focus { --tw-ring-color: var(--color-primary-600); }
+  
+  /* Hover utilities */
+  .hover\:bg-primary-700:hover { background-color: var(--color-primary-700); }
+  .hover\:bg-primary-600:hover { background-color: var(--color-primary-600); }
+  .hover\:text-primary-600:hover { color: var(--color-primary-600); }
+  .hover\:text-primary-700:hover { color: var(--color-primary-700); }
+  
+  /* Semantic color utilities */
+  .text-success { color: var(--color-success); }
+  .text-warning { color: var(--color-warning); }
+  .text-error { color: var(--color-error); }
+  .text-info { color: var(--color-info); }
+  
+  .bg-success { background-color: var(--color-success); }
+  .bg-warning { background-color: var(--color-warning); }
+  .bg-error { background-color: var(--color-error); }
+  .bg-info { background-color: var(--color-info); }
+  
+  .border-success { border-color: var(--color-success); }
+  .border-warning { border-color: var(--color-warning); }
+  .border-error { border-color: var(--color-error); }
+  .border-info { border-color: var(--color-info); }
+  
+  /* Optimal text colors for primary backgrounds */
+  .text-on-primary { color: var(--text-on-primary); }
+  .text-on-primary-light { color: var(--text-on-primary-light); }
+  .text-on-primary-dark { color: var(--text-on-primary-dark); }
+  
+  /* Enhanced primary color utilities with proper contrast */
+  .bg-primary-100.text-auto { color: var(--text-on-primary-light); }
+  .bg-primary-600.text-auto { color: var(--text-on-primary); }
+  .bg-primary-700.text-auto { color: var(--text-on-primary); }
+  .bg-primary-800.text-auto { color: var(--text-on-primary-dark); }
+}
+
+/* Timer flash effects - now adaptive */
+.timer-flash-green {
+  background-color: color-mix(in srgb, var(--color-success) 25%, var(--bg-secondary));
+  transition: background-color 0.1s ease-in-out;
+}
+
+.timer-flash-red {
+  background-color: color-mix(in srgb, var(--color-error) 25%, var(--bg-secondary));
+  transition: background-color 0.1s ease-in-out;
+}
+
+.timer-flash-yellow {
+  background-color: color-mix(in srgb, var(--color-warning) 25%, var(--bg-secondary));
+  transition: background-color 0.1s ease-in-out;
+}
+
+.timer-flash-blue {
+  background-color: color-mix(in srgb, var(--color-info) 25%, var(--bg-secondary));
+  transition: background-color 0.1s ease-in-out;
+}
+
+/* Base styles */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    @apply font-sans antialiased;
+  }
+
+  /* Custom scrollbar styles - now adaptive */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: var(--bg-tertiary);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--border-secondary);
+    @apply rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-tertiary);
+  }
+
+  /* Firefox scrollbar - adaptive */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-secondary) var(--bg-tertiary);
+  }
+}
+
+/* Component styles */
+@layer components {
+  /* Timer specific styles */
+  .timer-display {
+    font-feature-settings: 'tnum' 1; /* Tabular numbers for consistent width */
+    @apply font-mono font-bold leading-none select-none;
+  }
+
+  /* Scramble text formatting */
+  .scramble-text {
+    @apply font-mono leading-relaxed tracking-wide;
+    word-spacing: 0.5em;
+  }
+
+  /* Button variants - now fully adaptive */
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  .btn-secondary {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-primary);
+    @apply px-4 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--border-primary);
+  }
+
+  .btn-danger {
+    background-color: var(--color-error);
+    @apply text-white px-4 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+    --tw-ring-color: var(--color-error);
+  }
+
+  .btn-danger:hover {
+    background-color: color-mix(in srgb, var(--color-error) 80%, black 20%);
+  }
+
+  /* Card styles - now fully adaptive */
+  .card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    @apply rounded-lg shadow-sm;
+  }
+
+  .card-header {
+    border-bottom: 1px solid var(--border-primary);
+    @apply px-6 py-4;
+  }
+
+  .card-body {
+    @apply px-6 py-4;
+  }
+
+  /* Form styles - now fully adaptive */
+  .form-input {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    @apply w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors;
+  }
+
+  .form-input:focus {
+    border-color: transparent;
+  }
+
+  .form-label {
+    color: var(--text-primary);
+    @apply block text-sm font-medium mb-2;
+  }
+
+  .form-error {
+    color: var(--color-error);
+    @apply text-sm mt-1;
+  }
+
+  /* Stat card styles - now fully adaptive */
+  .stat-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    @apply rounded-lg p-6 hover:shadow-md transition-shadow;
+  }
+
+  .stat-value {
+    color: var(--text-primary);
+    @apply text-3xl font-bold mb-2;
+  }
+
+  .stat-label {
+    color: var(--text-secondary);
+    @apply text-sm;
+  }
+
+  .stat-change {
+    @apply text-sm font-medium;
+  }
+
+  .stat-change.positive {
+    color: var(--color-success);
+  }
+
+  .stat-change.negative {
+    color: var(--color-error);
+  }
+
+  /* Navigation styles - now fully adaptive */
+  .nav-link {
+    color: var(--text-secondary);
+    @apply flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors;
+  }
+
+  .nav-link:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .nav-link.active {
+    @apply bg-primary-100 text-primary-700 border-r-2 border-primary-600;
+  }
+
+  /* Badge styles - now fully adaptive */
+  .badge {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-primary-100 text-primary-800;
+  }
+
+  .badge-success {
+    background-color: color-mix(in srgb, var(--color-success) 15%, var(--bg-secondary));
+    color: color-mix(in srgb, var(--color-success) 70%, black 30%);
+  }
+
+  .badge-warning {
+    background-color: color-mix(in srgb, var(--color-warning) 15%, var(--bg-secondary));
+    color: color-mix(in srgb, var(--color-warning) 70%, black 30%);
+  }
+
+  .badge-danger {
+    background-color: color-mix(in srgb, var(--color-error) 15%, var(--bg-secondary));
+    color: color-mix(in srgb, var(--color-error) 70%, black 30%);
+  }
+
+  .badge-gray {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+  }
+}
+
+/* Utility styles */
+@layer utilities {
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Custom focus styles for better accessibility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  /* Text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Layout utilities */
+  .content-container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+
+  .aspect-cube {
+    aspect-ratio: 1 / 1;
+  }
+
+  /* Timer color states - now adaptive */
+  .timer-ready {
+    color: var(--text-secondary);
+  }
+
+  .timer-inspection {
+    color: var(--color-info);
+  }
+  
+  .timer-inspection-warning {
+    color: var(--color-warning);
+  }
+  
+  .timer-inspection-danger {
+    color: var(--color-error);
+  }
+
+  .timer-solving {
+    color: var(--color-success);
+  }
+
+  .timer-finished {
+    color: var(--text-primary);
+  }
+
+  /* Time category colors - now adaptive */
+  .time-excellent {
+    color: var(--color-success);
+  }
+
+  .time-good {
+    color: var(--color-info);
+  }
+
+  .time-average {
+    color: var(--color-warning);
+  }
+
+  .time-slow {
+    color: color-mix(in srgb, var(--color-warning) 70%, var(--color-error) 30%);
+  }
+
+  .time-poor {
+    color: var(--color-error);
+  }
+
+  /* Scramble state colors - now adaptive */
+  .scramble-generating {
+    color: var(--color-info);
+  }
+
+  .scramble-ready {
+    color: var(--text-primary);
+  }
+
+  .scramble-error {
+    color: var(--color-error);
+  }
+}
+
+/* Keyframe animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-friendly {
+    @apply text-black bg-white;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .card {
+    @apply border-2 border-gray-900;
+  }
+
+  .btn-primary {
+    @apply border-2 border-primary-800;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Note: Duplicate styles removed - all functionality is now handled by the adaptive system above */

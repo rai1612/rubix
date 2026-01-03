@@ -1,0 +1,544 @@
+import React, { useState, useEffect } from 'react';
+import { TimerDisplay } from '../components/timer/TimerDisplay';
+import { TimerControls } from '../components/timer/TimerControls';
+import { TimerSettings } from '../components/timer/TimerSettings';
+import { ScrambleDisplay } from '../components/scramble/ScrambleDisplay';
+import { SessionStatsDisplay } from '../components/statistics/SessionStatsDisplay';
+import { useTimer } from '../hooks/useTimer';
+import { useSessionContext } from '../context/SessionContext';
+import { useTimerContext } from '../context/TimerContext';
+import { useTimerSettings, useTimerSound, useTimerVisualEffects } from '../hooks/useTimerSettings';
+import { TimerResult, TimerState } from '../utils/timerUtils';
+import { PuzzleType, ScrambleService, ClientScrambleGenerator, ScrambleDto } from '../services/scrambleService';
+import { SolveService, CreateSolveRequest } from '../services/solveService';
+
+const TimerPage: React.FC = () => {
+  const [selectedPuzzleType, setSelectedPuzzleType] = useState<PuzzleType>(PuzzleType.CUBE_3X3);
+  const [currentSolveId, setCurrentSolveId] = useState<string | null>(null);
+  const [optimisticSolveCount, setOptimisticSolveCount] = useState<number | null>(null);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
+  
+  // Scramble management state
+  const [currentScramble, setCurrentScramble] = useState<ScrambleDto | null>(null);
+  const [nextScramble, setNextScramble] = useState<ScrambleDto | null>(null);
+  const [isGeneratingNext, setIsGeneratingNext] = useState<boolean>(false);
+  const [scrambleError, setScrambleError] = useState<string | null>(null);
+
+  // Retry tracking state
+  const [originalScrambleId, setOriginalScrambleId] = useState<string | null>(null);
+  const [isRetryAttempt, setIsRetryAttempt] = useState<boolean>(false);
+
+  // Statistics refresh trigger
+  const [statsRefreshTrigger, setStatsRefreshTrigger] = useState<number>(0);
+
+  // Settings hooks
+  const { settings, updateSettings, isLoaded: settingsLoaded } = useTimerSettings();
+  const { playSound } = useTimerSound(settings.enableSound);
+  const { flashScreen, vibrate } = useTimerVisualEffects();
+  
+  // Session context
+  const {
+    currentSession,
+    isLoading: sessionLoading,
+    error: sessionError,
+    loadOrCreateSession,
+    refreshSession
+  } = useSessionContext();
+
+  // Timer context for global timer state management
+  const { setTimerState } = useTimerContext();
+
+  // Enhanced solve completion handler with proper state management
+  const handleEnhancedSolveComplete = async (result: TimerResult, isUpdate: boolean = false) => {
+    // Enhanced feedback for solve completion
+    if (!isUpdate) {
+      playSound('stop');
+      flashScreen('green');
+      vibrate(100);
+    }
+    
+    // Call the original solve completion logic
+    if (!currentScramble) {
+      console.warn('No scramble available for solve');
+      return;
+    }
+
+    try {
+      // Ensure we have an active session before creating/updating solve
+      // Backend now guarantees a session exists, but let's be defensive
+      if (!currentSession && !sessionLoading) {
+        console.error('⚠️ No session found, ensuring default session exists...');
+        await loadOrCreateSession();
+        
+        // Wait a brief moment for session state to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      // With the guaranteed session approach, this should never happen
+      if (!currentSession) {
+        throw new Error('No session available. Backend guarantees failed - please refresh the page.');
+      }
+      
+      if (currentSolveId && isUpdate) {
+        // Update existing solve (when penalty is added/removed)
+        await SolveService.updateSolve(currentSolveId, {
+          timeMs: Math.round(result.time),
+          penalty: result.penalty as any,
+          notes: undefined
+        });
+      } else {
+        // Create new solve (first time completion)
+        console.log('🎯 Creating solve for session:', currentSession?.id);
+        console.log('🎯 Current session details:', {
+          id: currentSession?.id,
+          name: currentSession?.name,
+          isActive: currentSession?.isActive,
+          solveCount: currentSession?.solveCount
+        });
+        
+        if (currentSession) {
+          setOptimisticSolveCount((currentSession.solveCount || 0) + 1);
+        } else {
+          console.error('❌ No current session available for solve creation!');
+          throw new Error('No active session available. Please refresh the page.');
+        }
+        
+        const request: CreateSolveRequest = {
+          scrambleId: originalScrambleId || currentScramble.id, // Use original scramble ID for retries
+          timeMs: Math.round(result.time),
+          inspectionTimeMs: Math.round(result.inspectionTime),
+          penalty: result.penalty as any,
+          solvedAt: result.timestamp.toISOString(),
+          notes: isRetryAttempt ? 'Retry attempt' : undefined
+        };
+
+        const savedSolve = await SolveService.createSolve(request);
+        setCurrentSolveId(savedSolve.id);
+        console.log('✅ Solve created successfully:', savedSolve.id);
+      }
+      
+      // Refresh session data and trigger statistics refresh
+      if (currentSession) {
+        await refreshSession();
+        setOptimisticSolveCount(null);
+        
+        // Always trigger statistics refresh for new solves and updates
+        setStatsRefreshTrigger(prev => prev + 1);
+        
+        // Clear retry state after successful solve
+        if (!isUpdate) {
+          setIsRetryAttempt(false);
+          setOriginalScrambleId(null);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Failed to save/update solve:', error);
+      
+      // Handle session-related errors specifically
+      if (error instanceof Error && 
+          (error.message.includes('No active session') || 
+           error.message.includes('session'))) {
+        console.error('⚠️ Session issue detected, attempting to create session...');
+        try {
+          await loadOrCreateSession();
+          console.log('✅ Session created after error, you can retry your solve');
+          alert('Session was recreated. Please try your solve again.');
+        } catch (sessionError) {
+          console.error('❌ Failed to create session after error:', sessionError);
+          alert('Failed to create session. Please refresh the page.');
+        }
+      } else {
+        // Show user-friendly error message for other errors
+        alert(`Failed to save solve: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+      
+      // Reset optimistic updates on error
+      setOptimisticSolveCount(null);
+    }
+  };
+
+  // Timer hook with settings integration and state callbacks
+  const {
+    state: timerState,
+    currentTime,
+    inspectionTimeRemaining,
+    lastResult,
+    isHolding,
+    reset: resetTimer,
+    addPenalty,
+    removePenalty
+  } = useTimer({
+    inspectionTime: settings.inspectionTime,
+    mode: settings.mode,
+    onSolveComplete: handleEnhancedSolveComplete,
+    autoReset: false,
+    enableKeyboard: true,
+    enableHoldToStart: settings.enableHoldToStart
+  });
+
+  // Sync timer state to context for global UI state management
+  useEffect(() => {
+    setTimerState(timerState);
+  }, [timerState, setTimerState]);
+
+  // Function to generate a scramble
+  const generateScramble = async (): Promise<ScrambleDto | null> => {
+    try {
+      setScrambleError(null);
+      const newScramble = await ScrambleService.generateScramble(selectedPuzzleType);
+      return newScramble;
+    } catch (error) {
+      console.error('Failed to generate scramble:', error);
+      setScrambleError('Failed to generate scramble');
+      
+      // Fallback: generate offline scramble
+      try {
+        const offlineScrambleText = ClientScrambleGenerator.generateOfflineScramble(selectedPuzzleType);
+        const offlineScramble: ScrambleDto = {
+          id: `offline-${Date.now()}`,
+          scrambleText: offlineScrambleText,
+          puzzleType: selectedPuzzleType,
+          algorithmMoves: offlineScrambleText.split(' ').length,
+          moveCount: offlineScrambleText.split(' ').length,
+          generatedAt: new Date().toISOString(),
+          isCustom: false
+        };
+        setScrambleError(null);
+        return offlineScramble;
+      } catch (fallbackError) {
+        console.error('Failed to generate fallback scramble:', fallbackError);
+        setScrambleError('Failed to generate scramble');
+        return null;
+      }
+    }
+  };
+
+  // Function to generate next scramble in background
+  const generateNextScramble = async () => {
+    if (isGeneratingNext) return;
+    
+    setIsGeneratingNext(true);
+    try {
+      const newScramble = await generateScramble();
+      if (newScramble) {
+        setNextScramble(newScramble);
+      }
+    } finally {
+      setIsGeneratingNext(false);
+    }
+  };
+
+  // Function to swap to next scramble instantly
+  const swapToNextScramble = () => {
+    if (nextScramble) {
+      setCurrentScramble(nextScramble);
+      setNextScramble(null);
+      // Immediately start generating the next one
+      generateNextScramble();
+    } else {
+      // Fallback: generate new scramble normally
+      handleGenerateNewScramble();
+    }
+  };
+
+  // Function to generate new scramble (for manual generation)
+  const handleGenerateNewScramble = async () => {
+    console.log('handleGenerateNewScramble called');
+    const newScramble = await generateScramble();
+    if (newScramble) {
+      console.log('New scramble generated:', newScramble.scrambleText);
+      setCurrentScramble(newScramble);
+    } else {
+      console.log('Failed to generate new scramble');
+    }
+  };
+
+  // Function to retry a specific scramble
+  const handleRetryScramble = (scrambleText: string, puzzleType: PuzzleType, originalScrambleId?: string) => {
+    console.log('Retrying scramble:', scrambleText, 'Original ID:', originalScrambleId);
+    
+    // Create a scramble object from the text
+    const retryScramble = {
+      id: originalScrambleId || `retry-${Date.now()}`, // Use original ID if provided
+      scrambleText,
+      puzzleType,
+      algorithmMoves: scrambleText.split(' ').length,
+      moveCount: scrambleText.split(' ').length,
+      generatedAt: new Date().toISOString(),
+      isCustom: false
+    };
+
+    // Set as current scramble
+    setCurrentScramble(retryScramble);
+    
+    // Track retry state
+    setOriginalScrambleId(originalScrambleId || retryScramble.id);
+    setIsRetryAttempt(true);
+    
+    // Clear any previous solve
+    setCurrentSolveId(null);
+    setOptimisticSolveCount(null);
+    
+    // Reset timer if it's not in READY state
+    if (timerState !== TimerState.READY) {
+      resetTimer();
+    }
+
+    // Update puzzle type if different
+    if (puzzleType !== selectedPuzzleType) {
+      setSelectedPuzzleType(puzzleType);
+    }
+
+    // Visual feedback
+    flashScreen('green');
+  };
+
+
+
+  // Handle manual scramble generation (from button press)
+  const handleGenerateScramble = () => {
+    console.log('Manual scramble generation requested. Timer state:', timerState);
+    
+    // Allow manual generation when timer is ready or finished (not during solving or inspection)
+    if (timerState === TimerState.READY || timerState === TimerState.FINISHED) {
+      console.log('Generating new scramble manually...');
+      handleGenerateNewScramble();
+      setCurrentSolveId(null);
+      setOptimisticSolveCount(null);
+    } else {
+      console.log('Manual scramble generation blocked - timer not in READY or FINISHED state');
+    }
+  };
+
+
+
+  // Handle timer reset
+  const handleReset = () => {
+    resetTimer();
+    setCurrentSolveId(null);
+    setOptimisticSolveCount(null);
+    // Note: Scramble generation will be handled by useEffect when state becomes READY
+  };
+
+  // Generate initial scramble on component mount (session is auto-loaded by context)
+  useEffect(() => {
+    // Generate initial scramble only if we don't have one
+    if (!currentScramble) {
+      handleGenerateNewScramble();
+    }
+  }, []); // Empty dependency - only run once on mount
+
+  // Ensure session exists when user starts timing (defensive programming)
+  useEffect(() => {
+    if (timerState === TimerState.INSPECTION && !currentSession && !sessionLoading) {
+      console.log('⚠️ TimerPage: No session during inspection, creating one...');
+      loadOrCreateSession();
+    }
+  }, [timerState, currentSession, sessionLoading, loadOrCreateSession]);
+
+  // Handle timer state changes for sound effects and scramble pre-generation
+  useEffect(() => {
+    switch (timerState) {
+      case TimerState.INSPECTION:
+        playSound('start');
+        break;
+      case TimerState.SOLVING:
+        playSound('ready');
+        // Start generating next scramble as soon as solving begins
+        generateNextScramble();
+        break;
+      case TimerState.FINISHED:
+        // Instantly swap to pre-generated scramble - no delay!
+        swapToNextScramble();
+        break;
+      default:
+        break;
+    }
+  }, [timerState, playSound]);
+
+  // Inspection warning sound effect
+  useEffect(() => {
+    if (timerState === TimerState.INSPECTION && settings.enableInspectionWarning) {
+      const remainingSeconds = inspectionTimeRemaining / 1000;
+      
+      // Play warning sound when crossing the warning threshold
+      if (remainingSeconds <= settings.inspectionWarningTime && remainingSeconds > settings.inspectionWarningTime - 0.1) {
+        playSound('warning');
+      }
+    }
+  }, [timerState, inspectionTimeRemaining, settings.enableInspectionWarning, settings.inspectionWarningTime, playSound]);
+
+  // Debug: Track session changes
+  useEffect(() => {
+    console.log('TimerPage: currentSession changed:', {
+      id: currentSession?.id,
+      solveCount: currentSession?.solveCount,
+      averageTimeMs: currentSession?.averageTimeMs,
+      bestTimeMs: currentSession?.bestTimeMs
+    });
+  }, [currentSession]);
+
+
+
+  // Determine if we should show minimal interface (only timer during solving)
+  const isMinimalMode = timerState === TimerState.INSPECTION || timerState === TimerState.SOLVING;
+
+  return (
+    <div className="max-w-6xl mx-auto">
+      {isMinimalMode ? (
+        /* Minimal Solving Interface - Only Timer */
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="w-full max-w-4xl">
+            <TimerDisplay
+              state={timerState}
+              currentTime={currentTime}
+              inspectionTimeRemaining={inspectionTimeRemaining}
+              inspectionTime={settings.inspectionTime}
+              lastSolveTime={lastResult?.time}
+              hideTime={settings.hideTime}
+              mode={settings.mode}
+              precision={settings.precision}
+              enableInspectionWarning={settings.enableInspectionWarning}
+              inspectionWarningTime={settings.inspectionWarningTime}
+              isHolding={isHolding}
+              disabled={!currentScramble || !settingsLoaded}
+            />
+          </div>
+        </div>
+      ) : (
+        /* Full Interface - All Components */
+        <div className="space-y-8 py-8">
+          {/* Header */}
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-adaptive-primary mb-2">Practice Timer</h1>
+            <p className="text-adaptive-secondary">
+              Generate scrambles, time your solves, and track your progress
+            </p>
+          </div>
+
+          {/* Puzzle Type Selector */}
+          <div className="flex justify-center">
+            <div className="bg-adaptive-secondary rounded-lg border border-adaptive-primary p-1 inline-flex">
+              <button
+                onClick={() => setSelectedPuzzleType(PuzzleType.CUBE_2X2)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  selectedPuzzleType === PuzzleType.CUBE_2X2
+                    ? 'bg-primary-600 text-on-primary'
+                    : 'text-adaptive-secondary hover:text-adaptive-primary'
+                }`}
+              >
+                2x2
+              </button>
+              <button
+                onClick={() => setSelectedPuzzleType(PuzzleType.CUBE_3X3)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  selectedPuzzleType === PuzzleType.CUBE_3X3
+                    ? 'bg-primary-600 text-on-primary'
+                    : 'text-adaptive-secondary hover:text-adaptive-primary'
+                }`}
+              >
+                3x3
+              </button>
+              <button
+                onClick={() => setSelectedPuzzleType(PuzzleType.CUBE_4X4)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  selectedPuzzleType === PuzzleType.CUBE_4X4
+                    ? 'bg-primary-600 text-on-primary'
+                    : 'text-adaptive-secondary hover:text-adaptive-primary'
+                }`}
+              >
+                4x4
+              </button>
+            </div>
+          </div>
+
+          {/* Scramble Display */}
+          <div className="flex justify-center">
+            <div className="w-full max-w-2xl">
+                          <ScrambleDisplay
+              scramble={currentScramble}
+              isGenerating={false} // We handle loading states differently now
+              onGenerateNew={handleGenerateScramble}
+            />
+              {scrambleError && (
+                <div className="mt-4 p-4 bg-error border border-error rounded-lg">
+                  <p className="text-error text-sm">
+                    Failed to generate scramble: {scrambleError}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Timer Display */}
+          <div className="flex justify-center">
+            <div className="w-full max-w-4xl">
+              <TimerDisplay
+                state={timerState}
+                currentTime={currentTime}
+                inspectionTimeRemaining={inspectionTimeRemaining}
+                inspectionTime={settings.inspectionTime}
+                lastSolveTime={lastResult?.time}
+                hideTime={settings.hideTime}
+                mode={settings.mode}
+                precision={settings.precision}
+                enableInspectionWarning={settings.enableInspectionWarning}
+                inspectionWarningTime={settings.inspectionWarningTime}
+                isHolding={isHolding}
+                disabled={!currentScramble || !settingsLoaded}
+              />
+            </div>
+          </div>
+
+          {/* Timer Controls */}
+          <div className="flex justify-center">
+            <div className="w-full max-w-lg">
+              <TimerControls
+                lastResult={lastResult}
+                onAddPenalty={addPenalty}
+                onRemovePenalty={removePenalty}
+                onReset={handleReset}
+                onOpenSettings={() => setShowSettings(true)}
+                precision={settings.precision}
+                disabled={false}
+              />
+            </div>
+          </div>
+
+          {/* Session Stats */}
+          <SessionStatsDisplay
+            session={currentSession}
+            isLoading={sessionLoading}
+            error={sessionError}
+            optimisticSolveCount={optimisticSolveCount}
+            puzzleType={selectedPuzzleType}
+            refreshTrigger={statsRefreshTrigger}
+            onRetryScramble={handleRetryScramble}
+          />
+
+          {/* Instructions */}
+          <div className="bg-adaptive-tertiary border border-adaptive-primary rounded-lg p-6">
+            <h3 className="text-lg font-medium text-adaptive-primary mb-2">How to Use</h3>
+            <ul className="text-adaptive-secondary text-sm space-y-1">
+              <li>• Press <kbd className="px-2 py-1 bg-adaptive-secondary border border-adaptive-primary rounded text-xs">SPACE</kbd> to start inspection</li>
+              <li>• Press <kbd className="px-2 py-1 bg-adaptive-secondary border border-adaptive-primary rounded text-xs">SPACE</kbd> again to start solving</li>
+              <li>• Press <kbd className="px-2 py-1 bg-adaptive-secondary border border-adaptive-primary rounded text-xs">SPACE</kbd> when finished to stop the timer</li>
+              <li>• Use <kbd className="px-2 py-1 bg-adaptive-secondary border border-adaptive-primary rounded text-xs">2</kbd> for +2 penalty, <kbd className="px-2 py-1 bg-adaptive-secondary border border-adaptive-primary rounded text-xs">D</kbd> for DNF</li>
+              <li>• Press <kbd className="px-2 py-1 bg-adaptive-secondary border border-adaptive-primary rounded text-xs">R</kbd> to reset and get a new scramble</li>
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Timer Settings Modal - Always available */}
+      <TimerSettings
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        settings={settings}
+        onSettingsChange={updateSettings}
+      />
+    </div>
+  );
+};
+
+export default TimerPage;
